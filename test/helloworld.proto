@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package helloworld;
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (Reply) {}
+  rpc Introspect (IntrospectRequest) returns (IntrospectReply) {}
+}
+
+
+message HelloRequest {
+  string name = 1;
+}
+
+message Reply {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+}
+
+
+message IntrospectRequest {
+//  string path = 1; // Currently, path introspection is not supported. You can get only the full schema in gRPC.
+}
+
+message IntrospectReply {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  string procedures = 4;
+}
