@@ -4,6 +4,7 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
+    "lint": "eslint ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,10 +15,22 @@
     "prettier": "^2.1.1"
   },
   "dependencies": {
+    "eslint": "^7.9.0",
     "stampit": "^4.3.1"
   },
   "optionalDependencies": {
     "@grpc/grpc-js": "^1.1.7",
     "micro": "^9.3.4"
+  },
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2019
+    },
+    "env": {
+      "es6": true,
+      "node": true,
+      "mocha": true
+    },
+    "extends": "eslint:recommended"
   }
 }

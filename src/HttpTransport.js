@@ -1,7 +1,7 @@
 const { parse: parseUrl, URLSearchParams } = require("url");
 
 module.exports = require("stampit")({
-    name: "HttpProtocol",
+    name: "HttpTransport",
 
     props: {
         _micro: require("micro"),

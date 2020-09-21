@@ -1,58 +1,61 @@
 const procedures = {
-    createUser({ firstName, lastName }) {
-        // call database ...
-        return { success: true, code: "CREATED", user: { id: String(Math.random()).substr(2) } };
+    sayHello({ name }) {
+        return "Hello " + name;
     },
-    gates: [
-        function () {},
-        function () {
-            return 42;
-        },
-        function thirdGate() {
-            return {
-                name: "Golden Gate",
-                lastVehicle: "0 seconds ago",
-            };
-        },
-    ],
+    introspection({ enable }, { allserver }) {
+        allserver.introspection = Boolean(enable);
+    },
+    gate({ number }) {
+        if (number === 0) return undefined;
+        if (number === 1) return { length: 42 };
+        if (number === 2) return { name: "Golden Gate", lastVehicle: "0 seconds ago" };
+        return { success: false, code: "GATE_NOT_FOUND", message: `Gate ${number} was not found` };
+    },
     getArg(arg) {
         return arg;
     },
     throws() {
         this.ping.me();
     },
-    introspection: {
-        enable(_, { allserver }) {
-            allserver.introspection = true;
-        },
-        disable(_, { allserver }) {
-            allserver.introspection = false;
-        },
-    },
-    SayHello({ name }) {
-        return "Hello " + name;
+    createUser({ firstName, lastName }) {
+        // call database ...
+        return { success: true, code: "CREATED", user: { id: String(Math.random()).substr(2), firstName, lastName } };
     },
 };
 
-const Allserver = require("..").Allserver;
+const { Allserver, GrpcTransport } = require("..");
 
 // Allserver({ procedures }).start();
 
-const loadOptions = { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true };
-const packageDefinition = require("@grpc/proto-loader").loadSync(__dirname + "/helloworld.proto", loadOptions);
-Allserver({ procedures, protocol: require("..").GrpcProtocol({ packageDefinition }) }).start();
+const packageDefinition = require("@grpc/proto-loader").loadSync(__dirname + "/allserver_example.proto");
+Allserver({ procedures, transport: GrpcTransport({ packageDefinition }) }).start();
 
-setTimeout(() => {
+setTimeout(async () => {
     var grpc = require("@grpc/grpc-js");
-    var hello_proto = grpc.loadPackageDefinition(packageDefinition).helloworld;
-    var client = new hello_proto.Greeter("localhost:4000", grpc.credentials.createInsecure());
+    var hello_proto = grpc.loadPackageDefinition(packageDefinition).allserver_example;
+    var client = new hello_proto.MyService("localhost:4000", grpc.credentials.createInsecure());
+    const { promisify } = require("util");
+    for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
+
     var user = "world";
-    client.sayHello({ name: user }, function (err, response) {
-        if (err) console.error(err);
-        else console.log("Greeting:", response.message);
-    });
-    client.introspect({}, function (err, response) {
-        if (err) console.error(err);
-        else console.log("Procedures:", response.procedures);
-    });
+    let response = await client.sayHello({ name: user });
+    console.log("Greeting:", response.message);
+
+    response = await client.introspect({});
+    console.log("Procedures:", response.procedures);
+
+    await client.introspection({ enable: false });
+    console.log("Disabled introspection");
+    response = await client.introspect({});
+    console.log("Procedures:", response.procedures);
+    await client.introspection({ enable: true });
+    console.log("Enabled introspection");
+    response = await client.introspect({});
+    console.log("Procedures:", response.procedures);
+
+    console.log("Gates 0, 1, 2, 3");
+    for (const number of [0, 1, 2, 3]) console.log(await client.gate({ number }));
+
+    response = await client.throws({});
+    console.log("Throws:", response);
 }, 1000);

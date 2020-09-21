@@ -9,16 +9,17 @@ module.exports = require("stampit")({
     name: "Allserver",
 
     props: {
+        logger: console,
         callsCount: 0,
-        protocol: null,
+        transport: null,
         procedures: {},
         introspection: () => true,
         before: () => {},
         after: () => {},
     },
 
-    init({ procedures, protocol, introspection, before, after }) {
-        this.protocol = protocol || require("./HttpProtocol")();
+    init({ procedures, transport, introspection, before, after }) {
+        this.transport = transport || require("./HttpTransport")();
         this.procedures = procedures || this.procedures;
         this.introspection = introspection != null ? introspection : this.introspection;
         this.before = before || this.before;
@@ -47,9 +48,9 @@ module.exports = require("stampit")({
             try {
                 result = await ctx.procedure(ctx.arg, ctx);
             } catch (err) {
-                console.error("PROCEDURE_ERROR", err);
+                this.logger.error("PROCEDURE_ERROR", err);
                 ctx.error = err;
-                this.protocol.prepareProcedureErrorReply(ctx);
+                this.transport.prepareProcedureErrorReply(ctx);
                 return;
             }
 
@@ -64,13 +65,15 @@ module.exports = require("stampit")({
                     message: "Success",
                     [ctx.procedure.name || ctx.procedureName]: result,
                 };
+            } else {
+                ctx.result = result;
             }
         },
 
         async handleCall(ctx) {
             ctx.callNumber = this.callsCount;
             this.callsCount += 1;
-            ctx.procedureName = this.protocol.getProcedureName(ctx);
+            ctx.procedureName = this.transport.getProcedureName(ctx);
             ctx.procedure = deepGet(ctx.allserver.procedures, ctx.procedureName);
 
             if (this.before) {
@@ -84,14 +87,14 @@ module.exports = require("stampit")({
                 // object or array -> introspect
                 if (ctx.procedure && typeof ctx.procedure === "object") {
                     ctx.introspection = this._introspect(ctx);
-                    this.protocol.prepareIntrospectionReply(ctx);
+                    this.transport.prepareIntrospectionReply(ctx);
                 }
             }
 
             if (!ctx.result) {
                 // Something unexpected -> 404
                 if (typeof ctx.procedure !== "function") {
-                    this.protocol.prepareNotFoundReply(ctx);
+                    this.transport.prepareNotFoundReply(ctx);
                 }
             }
 
@@ -108,11 +111,11 @@ module.exports = require("stampit")({
                 }
             }
 
-            this.protocol.reply(ctx);
+            this.transport.reply(ctx);
         },
 
         start() {
-            return this.protocol.startServer({ allserver: this });
+            return this.transport.startServer({ allserver: this });
         },
     },
 });
