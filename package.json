@@ -5,11 +5,29 @@
   "main": "src/index.js",
   "scripts": {
     "lint": "eslint ./",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "http",
+    "grpc",
+    "websocket",
+    "lambda",
+    "server",
+    "microservice"
+  ],
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/flash-oss/allserver"
+  },
+  "bugs": {
+    "url": "https://github.com/flash-oss/allserver/issues"
+  },
+  "homepage": "https://github.com/flash-oss/allserver",
+  "author": "Vasyl Boroviak",
+  "license": "MIT",
   "devDependencies": {
     "@grpc/proto-loader": "^0.5.5",
     "mocha": "^8.1.3",
@@ -33,5 +51,8 @@
       "mocha": true
     },
     "extends": "eslint:recommended"
+  },
+  "mocha": {
+    "recursive": true
   }
 }

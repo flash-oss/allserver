@@ -2,7 +2,9 @@
 
 Node.js opinionated RPC (Remote Procedure Call) server which aims to minimise both server-side and client-side code.
 
-Multi protocol (only HTTP and gRPC for now) - same client and server side code works for any data protocol out there (HTTP, gRPC, WebSockets, in-memory, etc).
+Multi protocol (only HTTP and gRPC for now) - server side code works for any data protocol out there (HTTP, gRPC, WebSockets, Lambda, in-memory, etc).
+
+Should be used for (micro)services where NodeJS can run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
 
 ## Why Allserver exists?
 
