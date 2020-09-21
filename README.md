@@ -65,7 +65,7 @@ Also, the main driving force was my vast experience splitting monolith servers o
 
 ### HTTP protocol
 
-The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module.
+The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module as an optional dependency.
 
 ```shell script
 npm i allserver micro
@@ -73,7 +73,7 @@ npm i allserver micro
 
 ### gRPC protocol
 
-The default `GrpcTransport` is using the standard the [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) npm module.
+The default `GrpcTransport` is using the standard the [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) npm module as an optional dependency.
 
 ```shell script
 npm i allserver @grpc/grpc-js @grpc/proto-loader
