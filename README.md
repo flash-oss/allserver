@@ -1,12 +1,12 @@
 # Allserver
 
-Node.js opinionated RPC (Remote Procedure Call) server which aims to minimise both server and client-side code.
+Node.js opinionated RPC (Remote Procedure Call) server which aims to minimise both server-side and client-side code.
 
 Multi protocol (only HTTP and gRPC for now) - same client and server side code works for any data protocol out there (HTTP, gRPC, WebSockets, in-memory, etc).
 
 ## Why Allserver exists?
 
-There are loads of developer video presentations where people rant about how things are complex and how we must do extra effort to simplify things. Allserver is about simplicity and developer experience. 
+There are loads of developer video presentations where people rant about how things are complex and how we must do extra effort to simplify things. Allserver is about simplicity and developer experience.
 
 Problems I had:
 
@@ -59,11 +59,31 @@ Also, the main driving force was my vast experience splitting monolith servers o
 1. **Procedures introspection (aka programmatic discovery) should work out of the box**
    - TODO: not sure about that one as yet.
 
+## Usage
+
+### HTTP protocol
+
+The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module.
+
+```shell script
+npm i allserver micro
+```
+
+### gRPC protocol
+
+The default `GrpcTransport` is using the standard the [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) npm module.
+
+```shell script
+npm i allserver @grpc/grpc-js @grpc/proto-loader
+```
+
+Note, with gRPC server and client you'd need to have your own `.proto` file and load it using the [`@grpc/proto-loader`](https://www.npmjs.com/package/@grpc/proto-loader). See code example below.
+
 ## Code examples
 
 ### Procedures (aka routes, aka schema, aka handlers)
 
-They are exactly the same for all the network protocols out there.
+These are you business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service or expose via a GraphQL API.
 
 ```js
 const procedures = {
@@ -131,6 +151,8 @@ Allserver({
 
 ### HTTP client side
 
+It's a regular HTTP `POST` call with JSON request and response. URI is `/updateUser`.
+
 ```js
 import axios from "axios";
 
@@ -146,7 +168,7 @@ const { success, code, message, user } = response.data;
 
 if (success) {
   if (code === "NO_CHANGES") {
-    console.log("User name was already", firstName, lastName);
+    console.log("User name was already:", firstName, lastName);
   } else {
     console.log("User name was updated");
   }
@@ -159,11 +181,23 @@ if (success) {
 }
 ```
 
+Alternatively, you can call the same API using `GET` request with search params (query): `http://example.com/updateUser?id=123412341234123412341234&firstName=Fred&lastName=Flinstone`
+
+```js
+const response = await axios.get("updateUser", {
+  params: {
+    id: "123412341234123412341234",
+    firstName,
+    lastName,
+  },
+});
+```
+
 ### gRPC server side
 
 Note that we are reusing the `procedures` from the HTTP example above.
 
-Make sure all the methods in your `.proto` file reply al least three properties: success, code, message. Otherwise, the server won't start.
+Make sure all the methods in your `.proto` file reply al least three properties: success, code, message. Otherwise, the server won't start and throw an error.
 
 ```js
 const packageDefinition = require("@grpc/proto-loader").loadSync(
@@ -202,7 +236,7 @@ const data = await client.updateUser({
   lastName,
 });
 
-const { success, code, message, user } = response.data;
+const { success, code, message, user } = data;
 ```
 
 ## FAQ

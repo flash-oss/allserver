@@ -1,5 +1,5 @@
 function isPlainObject(input) {
-    return input != null && input.constructor == Object;
+    return input && input.constructor === Object;
 }
 
 module.exports = require("stampit")({

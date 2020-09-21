@@ -18,12 +18,13 @@ module.exports = require("stampit")({
         after: () => {},
     },
 
-    init({ procedures, transport, introspection, before, after }) {
-        this.transport = transport || require("./HttpTransport")();
+    init({ procedures, transport, introspection, before, after, logger }) {
+        this.transport = transport || this.transport || require("./HttpTransport")();
         this.procedures = procedures || this.procedures;
         this.introspection = introspection != null ? introspection : this.introspection;
         this.before = before || this.before;
         this.after = after || this.after;
+        this.logger = logger || this.logger;
     },
 
     methods: {
@@ -44,6 +45,11 @@ module.exports = require("stampit")({
         },
 
         async _callProcedure(ctx) {
+            if (typeof ctx.procedure !== "function") {
+                this.transport.prepareNotFoundReply(ctx);
+                return;
+            }
+
             let result;
             try {
                 result = await ctx.procedure(ctx.arg, ctx);
@@ -74,7 +80,7 @@ module.exports = require("stampit")({
             ctx.callNumber = this.callsCount;
             this.callsCount += 1;
             ctx.procedureName = this.transport.getProcedureName(ctx);
-            ctx.procedure = deepGet(ctx.allserver.procedures, ctx.procedureName);
+            ctx.procedure = deepGet(this.procedures, ctx.procedureName);
 
             if (this.before) {
                 const result = await this.before(ctx);
@@ -88,13 +94,6 @@ module.exports = require("stampit")({
                 if (ctx.procedure && typeof ctx.procedure === "object") {
                     ctx.introspection = this._introspect(ctx);
                     this.transport.prepareIntrospectionReply(ctx);
-                }
-            }
-
-            if (!ctx.result) {
-                // Something unexpected -> 404
-                if (typeof ctx.procedure !== "function") {
-                    this.transport.prepareNotFoundReply(ctx);
                 }
             }
 
