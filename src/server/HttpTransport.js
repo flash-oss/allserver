@@ -55,7 +55,10 @@ module.exports = require("stampit")({
                 this._enrichContext(ctx);
                 await this._handleRequest(ctx);
             });
-            return this.server.listen(this.port);
+            return new Promise((r) => this.server.listen(this.port, r));
+        },
+        stopServer() {
+            return new Promise((r) => this.server.close(r));
         },
 
         getProcedureName(ctx) {

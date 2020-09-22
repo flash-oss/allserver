@@ -1,7 +1,7 @@
 {
   "name": "allserver",
   "version": "0.0.4",
-  "description": "",
+  "description": "Node.js opinionated multi transport and multi protocol RPC server aiming to minimise both server and client side code.",
   "main": "src/index.js",
   "scripts": {
     "lint": "eslint ./",
@@ -39,7 +39,8 @@
   },
   "optionalDependencies": {
     "@grpc/grpc-js": "^1.1.7",
-    "micro": "^9.3.4"
+    "micro": "^9.3.4",
+    "node-fetch": "^2.6.1"
   },
   "eslintConfig": {
     "parserOptions": {

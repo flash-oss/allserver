@@ -1,6 +1,7 @@
 module.exports = {
-    Allserver: require("./Allserver"),
+    Allserver: require("./server/Allserver"),
+    HttpTransport: require("./server/HttpTransport"),
+    GrpcTransport: require("./server/GrpcTransport"),
 
-    HttpTransport: require("./HttpTransport"),
-    GrpcTransport: require("./GrpcTransport"),
+    AllserverClient: require("./client/AllserverClient"),
 };

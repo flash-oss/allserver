@@ -116,5 +116,8 @@ module.exports = require("stampit")({
         start() {
             return this.transport.startServer({ allserver: this });
         },
+        stop() {
+            return this.transport.stopServer();
+        },
     },
 });

@@ -73,7 +73,11 @@ module.exports = require("stampit")({
                     (err, result) => (err ? reject(err) : resolve(result))
                 );
             });
-            this.server.start();
+
+            return this.server.start();
+        },
+        stopServer() {
+            return new Promise((r) => this.server.tryShutdown(r));
         },
 
         getProcedureName(ctx) {

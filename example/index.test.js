@@ -1,3 +1,4 @@
+// Your universal procedures.
 const procedures = {
     sayHello({ name }) {
         return "Hello " + name;
@@ -23,22 +24,48 @@ const procedures = {
     },
 };
 
-const { Allserver, GrpcTransport } = require("..");
+const { Allserver, HttpTransport, GrpcTransport, AllserverClient } = require("..");
 
-// Allserver({ procedures }).start();
-
-const packageDefinition = require("@grpc/proto-loader").loadSync(__dirname + "/allserver_example.proto");
-Allserver({ procedures, transport: GrpcTransport({ packageDefinition }) }).start();
+// HTTP
 
 setTimeout(async () => {
-    var grpc = require("@grpc/grpc-js");
-    var hello_proto = grpc.loadPackageDefinition(packageDefinition).allserver_example;
-    var client = new hello_proto.MyService("localhost:4000", grpc.credentials.createInsecure());
+    console.log("\nHTTP");
+
+    const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
+    httpServer.start();
+
+    // const fetch = require("node-fetch");
+    // const response = await (
+    //     await fetch("http://localhost:4000/sayHello", { method: "POST", body: JSON.stringify({ name: user }) })
+    // ).json();
+    // console.log("Greeting:", response.message);
+    const client = AllserverClient({ uri: "http://localhost:4000" });
+    await client.call("introspection", { enable: false });
+
+    console.log(1, await client.sayHello({ name: "world" }));
+    console.log(2, await client.sayHello({ name: "world" }));
+    // console.log(3, await client.unexist({ name: "world" }));
+    // console.log(3, await client.unexist({ name: "world" }));
+
+    await httpServer.stop();
+}, 1);
+
+// gRPC
+
+setTimeout(async () => {
+    console.log("\ngRPC");
+
+    const packageDefinition = require("@grpc/proto-loader").loadSync(__dirname + "/allserver_example.proto");
+    const grpcServer = Allserver({ procedures, transport: GrpcTransport({ packageDefinition, port: 50051 }) });
+    await grpcServer.start();
+
+    const grpc = require("@grpc/grpc-js");
+    const hello_proto = grpc.loadPackageDefinition(packageDefinition).allserver_example;
+    const client = new hello_proto.MyService("localhost:50051", grpc.credentials.createInsecure());
     const { promisify } = require("util");
     for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
 
-    var user = "world";
-    let response = await client.sayHello({ name: user });
+    let response = await client.sayHello({ name: "world" });
     console.log("Greeting:", response.message);
 
     response = await client.introspect({});
@@ -58,4 +85,6 @@ setTimeout(async () => {
 
     response = await client.throws({});
     console.log("Throws:", response);
+
+    await grpcServer.stop();
 }, 1000);
