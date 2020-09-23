@@ -253,7 +253,7 @@ Note, that `packageDefinition` should be created same way as we did for the serv
 
 ```js
 const grpc = require("@grpc/grpc-js");
-const proto = grpc.loadPackageDefinition(packageDefinition).allserver_example;
+const proto = grpc.loadPackageDefinition(packageDefinition);
 var client = new proto.MyService(
   "localhost:50051",
   grpc.credentials.createInsecure()

@@ -46,7 +46,7 @@ module.exports = require("stampit")({
 
         async _callProcedure(ctx) {
             if (typeof ctx.procedure !== "function") {
-                this.transport.prepareNotFoundReply(ctx);
+                await this.transport.prepareNotFoundReply(ctx);
                 return;
             }
 
@@ -56,7 +56,7 @@ module.exports = require("stampit")({
             } catch (err) {
                 this.logger.error("PROCEDURE_ERROR", err);
                 ctx.error = err;
-                this.transport.prepareProcedureErrorReply(ctx);
+                await this.transport.prepareProcedureErrorReply(ctx);
                 return;
             }
 
@@ -93,7 +93,7 @@ module.exports = require("stampit")({
                 // object or array -> introspect
                 if (ctx.procedure && typeof ctx.procedure === "object") {
                     ctx.introspection = this._introspect(ctx);
-                    this.transport.prepareIntrospectionReply(ctx);
+                    await this.transport.prepareIntrospectionReply(ctx);
                 }
             }
 

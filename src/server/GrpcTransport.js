@@ -6,15 +6,18 @@ module.exports = require("stampit")({
     name: "GrpcTransport",
 
     props: {
+        _fs: require("fs"),
         _grpc: require("@grpc/grpc-js"),
+        _protoLoader: require("@grpc/proto-loader"),
         port: process.env.PORT,
-        packageDefinition: null,
+        protoFile: null,
+        protoFileContents: null,
         options: null,
     },
 
-    init({ port, packageDefinition, options }) {
+    init({ port, protoFile, options }) {
         if (port) this.port = port;
-        if (packageDefinition) this.packageDefinition = packageDefinition;
+        if (protoFile) this.protoFile = protoFile;
         if (options) this.options = options;
     },
 
@@ -24,6 +27,7 @@ module.exports = require("stampit")({
             if (inspectedSet.has(obj)) return;
             inspectedSet.add(obj);
 
+            // TODO: Add /Allserver/introspect presence check
             for (const [k, v] of Object.entries(obj)) {
                 // Not sure how long this code would survive in modern fast pace days.
                 if (k === "responseType") {
@@ -51,19 +55,18 @@ module.exports = require("stampit")({
                 await ctx.allserver.handleCall(ctx);
             }
 
-            const protoDescriptor = this._grpc.loadPackageDefinition(this.packageDefinition);
-            for (const protoPackage of Object.values(protoDescriptor)) {
-                if (!isPlainObject(protoPackage)) continue;
+            const packageDefinition = this._protoLoader.loadSync(this.protoFile);
+            this._validatePackageDefinition(this.packageDefinition);
 
-                for (const typeOfProto of Object.values(protoPackage)) {
-                    if (!(typeof typeOfProto === "function" && isPlainObject(typeOfProto.service))) continue;
+            const protoDescriptor = this._grpc.loadPackageDefinition(packageDefinition);
+            for (const typeOfProto of Object.values(protoDescriptor)) {
+                if (!(typeof typeOfProto === "function" && isPlainObject(typeOfProto.service))) continue;
 
-                    const proxies = { introspect: wrappedCallback };
-                    for (const [name, impl] of Object.entries(defaultCtx.allserver.procedures)) {
-                        if (typeof impl == "function") proxies[name] = wrappedCallback;
-                    }
-                    this.server.addService(typeOfProto.service, proxies);
+                const proxies = { introspect: wrappedCallback };
+                for (const [name, impl] of Object.entries(defaultCtx.allserver.procedures)) {
+                    if (typeof impl == "function") proxies[name] = wrappedCallback;
                 }
+                this.server.addService(typeOfProto.service, proxies);
             }
 
             await new Promise((resolve, reject) => {
@@ -92,12 +95,17 @@ module.exports = require("stampit")({
         prepareProcedureErrorReply(ctx) {
             ctx.result = { success: false, code: ctx.error.code || "PROCEDURE_ERROR", message: ctx.error.message };
         },
-        prepareIntrospectionReply(ctx) {
+        async prepareIntrospectionReply(ctx) {
+            if (!this.protoFileContents) {
+                this.protoFileContents = this._fs.readFileSync(this.protoFile, "utf8");
+            }
+
             ctx.result = {
                 success: true,
                 code: "OK",
                 message: "Introspection as JSON string",
                 procedures: JSON.stringify(ctx.introspection),
+                proto: this.protoFileContents,
             };
         },
 

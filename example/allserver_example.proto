@@ -1,18 +1,21 @@
 syntax = "proto3";
-package allserver_example;
 
 message Empty {}
 message Reply { bool success = 1; string code = 2; string message = 3; }
+
 message IntrospectReply {
   bool success = 1;
   string code = 2;
   string message = 3;
-  string procedures = 4;
+  string procedures = 4; // JSON
+  string proto = 5; // file contents
+}
+
+service Allserver {
+  rpc introspect (Empty) returns (IntrospectReply) {}
 }
 
 service MyService {
-  rpc introspect (Empty) returns (IntrospectReply) {}
-
   rpc sayHello (HelloRequest) returns (Reply) {}
   rpc introspection (IntrospectionRequest) returns (Reply) {}
   rpc gate(GateRequest) returns (GateReply) {}

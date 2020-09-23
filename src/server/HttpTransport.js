@@ -71,7 +71,6 @@ module.exports = require("stampit")({
         },
         prepareProcedureErrorReply(ctx) {
             ctx.result = { success: false, code: ctx.error.code || "PROCEDURE_ERROR", message: ctx.error.message };
-            ctx.http.statusCode = 500;
         },
         prepareIntrospectionReply(ctx) {
             ctx.result = {

@@ -60,6 +60,7 @@ module.exports = require("stampit")({
         this._transport = transport || this._transport;
         if (!this._transport) {
             if (uri.startsWith("http")) this._transport = require("./HttpClientTransport")({ uri });
+            if (uri.startsWith("grpc")) this._transport = require("./GrpcClientTransport")({ uri });
             // if (uri.startsWith("grpc://")) this._transport = require("./GrpcClientTransport")({ uri });
 
             if (!this._transport) throw new Error(`Protocol not supported: ${uri}`);
