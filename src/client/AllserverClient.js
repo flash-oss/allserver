@@ -58,11 +58,12 @@ module.exports = require("stampit")({
     },
 
     init({ uri, transport }) {
-        if (typeof uri !== "string") throw new Error("`uri` connection string is required");
         this._uri = uri || this._uri;
 
         this._transport = transport || this._transport;
         if (!this._transport) {
+            if (typeof this._uri !== "string") throw new Error("`uri` connection string is required");
+
             if (this._uri.startsWith("http")) this._transport = require("./HttpClientTransport")({ uri: this._uri });
             if (this._uri.startsWith("grpc")) this._transport = require("./GrpcClientTransport")({ uri: this._uri });
 

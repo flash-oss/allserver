@@ -1,14 +1,13 @@
 const assert = require("assert");
 
-const VoidTransport = require("../src/client/ClientTransport")({
+const VoidClientTransport = require("../src/client/ClientTransport").compose({
     methods: {
         introspect() {},
         call() {},
     },
 });
 const AllserverClient = require("..").AllserverClient.props({
-    transport: VoidTransport(),
-    uri: "void://localhost",
+    transport: VoidClientTransport({ uri: "void://localhost" }),
 });
 
 describe.skip("AllserverClient", () => {
