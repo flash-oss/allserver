@@ -66,7 +66,11 @@ module.exports = require("stampit")({
         },
 
         prepareNotFoundReply(ctx) {
-            ctx.result = { success: false, code: "NOT_FOUND", message: `Procedure ${ctx.procedureName} not found` };
+            ctx.result = {
+                success: false,
+                code: "PROCEDURE_NOT_FOUND",
+                message: `Procedure ${ctx.procedureName} not found`,
+            };
             ctx.http.statusCode = 404;
         },
         prepareProcedureErrorReply(ctx) {

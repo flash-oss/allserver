@@ -2,14 +2,11 @@ const assert = require("assert");
 
 const VoidTransport = require("stampit")({
     methods: {
-        getProcedureName: (ctx) => ctx.void.proc,
-        prepareIntrospectionReply() {},
-        prepareNotFoundReply() {},
-        prepareProcedureErrorReply() {},
-        reply() {},
+        introspect() {},
+        call() {},
     },
 });
-const Allserver = require("..").Allserver.props({
+const AllserverClient = require("..").AllserverClient.props({
     transport: VoidTransport(),
     procedures: { testMethod() {} },
 });

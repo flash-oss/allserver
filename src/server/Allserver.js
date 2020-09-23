@@ -1,10 +1,3 @@
-function deepGet(object, path) {
-    if (!path || !path.split) return object;
-    const props = path.split("."); // E.g. "users.documents.0"
-    while (props.length !== 1) object = object[props.shift()];
-    return object && object[props[0]];
-}
-
 module.exports = require("stampit")({
     name: "Allserver",
 
@@ -80,7 +73,7 @@ module.exports = require("stampit")({
             ctx.callNumber = this.callsCount;
             this.callsCount += 1;
             ctx.procedureName = this.transport.getProcedureName(ctx);
-            ctx.procedure = deepGet(this.procedures, ctx.procedureName);
+            ctx.procedure = ctx.procedureName ? this.procedures[ctx.procedureName] : this.procedures;
 
             if (this.before) {
                 const result = await this.before(ctx);

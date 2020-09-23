@@ -1,4 +1,4 @@
-module.exports = require("stampit")({
+module.exports = require("./ClientTransport").compose({
     name: "GrpcClientTransport",
 
     props: {
@@ -7,51 +7,58 @@ module.exports = require("stampit")({
         _protoLoader: require("@grpc/proto-loader"),
         _grpcClientForIntrospection: null,
         _grpcClient: null,
-        uri: null,
     },
 
-    init({ uri }) {
-        this.uri = uri || this.uri;
-        this._grpcClientForIntrospection = this._createGrpcClient(
-            this._grpc.loadPackageDefinition(this._protoLoader.loadSync(__dirname + "/../mandatory.proto")).Allserver
+    init({ protoFile }) {
+        this._grpcClientForIntrospection = this._createClientFromCtor(
+            this._grpc.loadPackageDefinition(this._protoLoader.loadSync(__dirname + "/../../mandatory.proto")).Allserver
         );
+        if (protoFile) {
+            this._createMainClient(protoFile);
+            this.autoIntrospect = false;
+        }
     },
 
     methods: {
-        _createGrpcClient(Ctor) {
-            const client = new Ctor(this.uri.substr(7), this._grpc.credentials.createInsecure());
+        _createMainClient(protoFile) {
+            const pd = this._grpc.loadPackageDefinition(this._protoLoader.loadSync(protoFile));
 
-            const { promisify } = require("util");
-            for (const k in client) {
-                if (typeof client[k] === "function") {
-                    client[k] = promisify(client[k].bind(client));
-                }
-            }
+            const Ctor = Object.entries(this._grpc.loadPackageDefinition(pd)).find(
+                ([k, v]) => typeof v === "function" && k !== "Allserver"
+            )[1];
+            this._grpcClient = this._createClientFromCtor(Ctor && Ctor.service);
+        },
 
-            return client;
+        _createClientFromCtor(Ctor) {
+            return new Ctor(this.uri.substr(7), this._grpc.credentials.createInsecure());
         },
 
         async introspect() {
-            const result = await this._grpcClientForIntrospection.introspect({});
+            const result = await new Promise((resolve, reject) =>
+                this._grpcClientForIntrospection.introspect({}, (err, result) => (err ? reject(err) : resolve(result)))
+            );
 
-            if (result.proto) {
+            if (this.autoIntrospect && result.proto) {
+                // Writing to a temporary file because protoLoader.loadSync() supports files only.
                 const fileName = require("path").join(
                     require("os").tmpdir(),
                     `grpc-client-${String(Math.random())}.proto`
                 );
                 this._fs.writeFileSync(fileName, result.proto);
-                const pd = this._grpc.loadPackageDefinition(this._protoLoader.loadSync(fileName));
-                this._fs.unlinkSync(fileName);
-                const Ctor = Object.entries(this._grpc.loadPackageDefinition(pd)).find(
-                    ([k, v]) => typeof v === "function" && k !== "Allserver"
-                )[1];
-                this._grpcClient = this._createGrpcClient(Ctor && Ctor.service);
+                try {
+                    this._createMainClient(fileName);
+                } finally {
+                    this._fs.unlinkSync(fileName);
+                }
             }
+
             return result;
         },
 
         async call(procedureName = "", arg) {
-            return this._grpcClient[procedureName](arg || {});
+            return new Promise((resolve, reject) =>
+                this._grpcClient[procedureName](arg || {}, (err, result) => (err ? reject(err) : resolve(result)))
+            );
         },
     },
 });

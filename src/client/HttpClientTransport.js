@@ -1,13 +1,11 @@
-module.exports = require("stampit")({
+module.exports = require("./ClientTransport").compose({
     name: "HttpClientTransport",
 
     props: {
         _fetch: require("node-fetch"),
-        uri: null,
     },
 
-    init({ uri }) {
-        this.uri = uri || this.uri;
+    init() {
         if (!this.uri.endsWith("/")) this.uri += "/";
     },
 
