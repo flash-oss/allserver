@@ -14,7 +14,7 @@ Problems I had:
 
 - The HTTP status codes were never enough as error explanation. I always had to analise: firstly the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
 - Server side HTTP routing via slash `/` is not simple enough. What this route is for `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `crateUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`.
-- The HTTP methods are a pain point of any REST API. Is it POST or PUT or PATCH? Should it be DELETE or POST when I remove a permission to a file from a user? I know it should be POST, but it's confusing to call POST when I need to do REMOVE something. Protocol-level methods are never enough.
+- The HTTP methods are a pain point of any REST API. Is it `POST` or `PUT` or `PATCH`? Should it be `DELETE` or `POST` when I remove a permission to a file from a user? I know it should be `POST`, but it's confusing to call `POST` when I need to do REMOVE something. Protocol-level methods are never enough.
 - The GraphQL has great DX and tooling, but it is not a good fit for microservices. It adds too much complexity and is performance unfriendly (slow).
 - When a performance scaling was needed I had to rewrite an entire service and client codes to more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
 - HTTP monitoring tools were alarming errors when I was trying to check if a user with email `bla@example.com` exists (REST reply HTTP 404). Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors.
@@ -171,7 +171,7 @@ const { Allserver } = require("allserver");
 Allserver({ procedures }).start();
 ```
 
-The above code starts a HTTP server on port `process.env.PORT` if no transport was specified.
+The above code starts an HTTP server on port `process.env.PORT` if no transport was specified.
 
 Here is the same server but more explicit:
 
@@ -319,9 +319,9 @@ const { success, code, message, user } = data;
 
 ## FAQ
 
-### What happens if a procedure does not exist?
+### What happens if I call a procedure which does not exist?
 
-You'll get protocol-level "not found" error reply with `success,code,message` JSON in it.
+You'll get protocol-level "not found" error - thrown exception (with `success,code,message` JSON in it if possible). This is considered a programmer error, thus must throw.
 
 ```json
 {
@@ -331,9 +331,9 @@ You'll get protocol-level "not found" error reply with `success,code,message` JS
 }
 ```
 
-### What happens if a procedure throws?
+### What happens if I call a procedure which throws?
 
-You'll get a normal reply, but the `status` field will be `false`.
+You'll get a normal reply, no exceptions thrown client-side, but the `success` field will be `false`.
 
 ```json
 {
@@ -343,12 +343,31 @@ You'll get a normal reply, but the `status` field will be `false`.
 }
 ```
 
-Also, server would dump the full stack trace to the stderr using its `logger` property (defaults to `console`).
+Also, server would dump the full stack trace to the stderr using its `logger` property (defaults to `console`). Replace the Allserver's logger like this:
+
+```js
+const allserver = Allserver({ procedures, logger: new MyShinyLogger() });
+```
 
 ### Can I add a middleware?
 
 You can add only **one** pre-middleware, but also **one** post-middleware.
 
+```js
+const allserver = Allserver({ 
+  procedures,
+  before(ctx) {
+    console.log(ctx.procedureName, ctx.procedure, ctx.arg);  
+  },
+  after(ctx) {
+    console.log(ctx.procedureName, ctx.procedure, ctx.arg);  
+    console.log(ctx.introspection, ctx.result, ctx.error);    
+  }
+});
+```
+
 ### How to add Auth?
 
 You do it yourself. Via the `before` pre-middleware.
+
+Allserver does not (yet) standardise how the "bad auth" replies should look and feel. That's a discussion we need to take. Refer to the **Core principles** above for insights.
