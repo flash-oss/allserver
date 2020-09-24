@@ -249,6 +249,8 @@ Note that we are reusing the `procedures` from the example above.
 
 Make sure all the methods in your `.proto` file reply at least three properties: `success, code, message`. Otherwise, the server won't start and will throw an error.
 
+Also, for now, you need to add these [mandatory declarations](https://github.com/flash-oss/allserver/blob/814dbc0cf97069bee338dea7e4b7257b5a9a6f8e/mandatory.proto) to your `.proto` file.
+
 ```js
 const { Allserver, GrpcTransport } = require("allserver");
 
@@ -315,7 +317,7 @@ const { success, code, message, user } = data;
 1. Only [**unary**](https://grpc.io/docs/what-is-grpc/core-concepts/#unary-rpc) RPC. No streaming of any kind is available. By design.
 1. All the reply `message` definitions must have `bool success = 1; string code = 2; string message = 3;`. Otherwise, server won't start. By design.
 1. You can't have `import` statements in your `.proto` file. (Yet.)
-1. Your server-side `.proto` file must include Allserver's mandatory declarations. (Yet.)
+1. Your server-side `.proto` file must include Allserver's [mandatory declarations](https://github.com/flash-oss/allserver/blob/814dbc0cf97069bee338dea7e4b7257b5a9a6f8e/mandatory.proto). (Yet.)
 
 ## FAQ
 
