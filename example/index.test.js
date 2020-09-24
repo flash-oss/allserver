@@ -35,11 +35,11 @@ async function callClientMethods(client) {
 
     await client.introspection({ enable: false });
     console.log("Disabled introspection");
-    response = await client.introspect({});
-    console.log("Procedures:", response.procedures);
+    response = await client.introspect().catch((err) => err.message);
+    console.error("Procedures:", response);
     await client.introspection({ enable: true });
     console.log("Enabled introspection");
-    response = await client.introspect({});
+    response = await client.introspect();
     console.log("Procedures:", response.procedures);
 
     console.log("Gates 0, 1, 2, 3");
@@ -49,9 +49,8 @@ async function callClientMethods(client) {
     console.log("Throws:", response);
 }
 
-// HTTP
-
 setTimeout(async () => {
+    // HTTP
     console.log("\nHTTP");
 
     const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
@@ -62,14 +61,12 @@ setTimeout(async () => {
     //     await fetch("http://localhost:4000/sayHello", { method: "POST", body: JSON.stringify({ name: user }) })
     // ).json();
     // console.log("Greeting:", response.message);
+
     const httpClient = AllserverClient({ uri: "http://localhost:4000" });
-
     await callClientMethods(httpClient);
-
     await httpServer.stop();
 
     // gRPC
-
     console.log("\ngRPC");
 
     const grpcServer = Allserver({
@@ -86,8 +83,6 @@ setTimeout(async () => {
     // for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
 
     const grpcClient = AllserverClient({ uri: "grpc://localhost:50051" });
-
     await callClientMethods(grpcClient);
-
     await grpcServer.stop();
 }, 1);

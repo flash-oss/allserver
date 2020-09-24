@@ -1,3 +1,5 @@
+const { isString, isFunction } = require("../util");
+
 module.exports = require("stampit")({
     name: "ClientTransport",
 
@@ -9,10 +11,10 @@ module.exports = require("stampit")({
     },
 
     init({ uri, autoIntrospect }) {
-        if (typeof this.introspect !== "function") throw new Error("ClientTransport must implement introspect()");
-        if (typeof this.call !== "function") throw new Error("ClientTransport must implement call()");
+        if (!isFunction(this.introspect)) throw new Error("ClientTransport must implement introspect()");
+        if (!isFunction(this.call)) throw new Error("ClientTransport must implement call()");
 
-        if (typeof uri !== "string") throw new Error("`uri` connection string is required");
+        if (!isString(uri)) throw new Error("`uri` connection string is required");
         this.uri = uri || this.uri;
 
         this.autoIntrospect = autoIntrospect != null ? autoIntrospect : this.autoIntrospect;

@@ -2,6 +2,7 @@ const assert = require("assert");
 
 const VoidTransport = require("stampit")({
     methods: {
+        isIntrospection: () => false,
         getProcedureName: (ctx) => ctx.void.proc,
         prepareIntrospectionReply() {},
         prepareNotFoundReply() {},
@@ -185,6 +186,7 @@ describe("Allserver", () => {
         it("should disable introspection", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
+                isIntrospection: () => true,
                 async prepareIntrospectionReply(ctx) {
                     assert(!ctx.introspection);
                 },
@@ -204,6 +206,7 @@ describe("Allserver", () => {
         it("should disable introspection via function", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
+                isIntrospection: () => true,
                 async prepareIntrospectionReply(ctx) {
                     assert(!ctx.introspection);
                 },
@@ -223,6 +226,7 @@ describe("Allserver", () => {
         it("should introspect", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
+                isIntrospection: () => true,
                 getProcedureName(ctx) {
                     assert.strictEqual(ctx.void.proc, "introspect");
                     return "";
@@ -260,6 +264,7 @@ describe("Allserver", () => {
                         callNumber: 0,
                         procedure: server.procedures.testMethod,
                         procedureName: "testMethod",
+                        isIntrospection: false,
                         void: {
                             proc: "testMethod",
                         },
@@ -305,6 +310,7 @@ describe("Allserver", () => {
                         callNumber: 0,
                         procedure: server.procedures.testMethod,
                         procedureName: "testMethod",
+                        isIntrospection: false,
                         result: {
                             code: "SUCCESS",
                             message: "Success",

@@ -1,3 +1,5 @@
+const { isString } = require("../util");
+
 const introspectionCache = new Map();
 
 function addProceduresToObject(target, introspectionResult) {
@@ -62,7 +64,7 @@ module.exports = require("stampit")({
 
         this._transport = transport || this._transport;
         if (!this._transport) {
-            if (typeof this._uri !== "string") throw new Error("`uri` connection string is required");
+            if (!isString(this._uri)) throw new Error("`uri` connection string is required");
 
             if (this._uri.startsWith("http")) this._transport = require("./HttpClientTransport")({ uri: this._uri });
             if (this._uri.startsWith("grpc")) this._transport = require("./GrpcClientTransport")({ uri: this._uri });

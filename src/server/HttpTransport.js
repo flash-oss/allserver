@@ -65,6 +65,10 @@ module.exports = require("stampit")({
             return ctx.http.url.pathname.substr(1);
         },
 
+        isIntrospection(ctx) {
+            return this.getProcedureName(ctx) === "";
+        },
+
         prepareNotFoundReply(ctx) {
             ctx.result = {
                 success: false,

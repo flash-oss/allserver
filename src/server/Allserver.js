@@ -1,3 +1,7 @@
+const assert = require("assert");
+
+const { isObject, isString, isBoolean, isFunction } = require("../util");
+
 module.exports = require("stampit")({
     name: "Allserver",
 
@@ -6,7 +10,7 @@ module.exports = require("stampit")({
         callsCount: 0,
         transport: null,
         procedures: {},
-        introspection: () => true,
+        introspection: true,
         before: null,
         after: null,
     },
@@ -18,27 +22,27 @@ module.exports = require("stampit")({
         this.before = before || this.before;
         this.after = after || this.after;
         this.logger = logger || this.logger;
+
+        this._validateProcedures();
     },
 
     methods: {
-        _introspect(ctx, procedure) {
-            const on = this.introspection;
-            if (typeof on === "function" ? !on(ctx) : !on) {
-                return;
-            }
+        _validateProcedures() {
+            assert(isObject(this.procedures), "'procedures' must be an object");
+            assert(Object.values(this.procedures).every(isFunction), "All procedures must be functions");
+        },
+
+        _introspect(ctx) {
+            const allow = isFunction(this.introspection) ? this.introspection(ctx) : this.introspection;
+            if (!allow) return;
 
             const obj = {};
-            for (const [key, value] of Object.entries(procedure || ctx.procedure)) {
-                obj[key] = typeof value;
-                // array or object
-                if (value && obj[key] === "object") obj[key] = this._introspect(ctx, value);
-            }
-
+            for (const [key, value] of Object.entries(this.procedures)) obj[key] = typeof value;
             return obj;
         },
 
         async _callProcedure(ctx) {
-            if (typeof ctx.procedure !== "function") {
+            if (!isFunction(ctx.procedure)) {
                 await this.transport.prepareNotFoundReply(ctx);
                 return;
             }
@@ -55,9 +59,9 @@ module.exports = require("stampit")({
 
             if (result === undefined) {
                 ctx.result = { success: true, code: "SUCCESS", message: "Success" };
-            } else if (result && typeof result === "string") {
+            } else if (result && isString(result)) {
                 ctx.result = { success: true, code: "SUCCESS", message: result };
-            } else if (!result || typeof result.success !== "boolean") {
+            } else if (!result || !isBoolean(result.success)) {
                 ctx.result = {
                     success: true,
                     code: "SUCCESS",
@@ -73,7 +77,8 @@ module.exports = require("stampit")({
             ctx.callNumber = this.callsCount;
             this.callsCount += 1;
             ctx.procedureName = this.transport.getProcedureName(ctx);
-            ctx.procedure = ctx.procedureName ? this.procedures[ctx.procedureName] : this.procedures;
+            ctx.isIntrospection = this.transport.isIntrospection(ctx);
+            if (!ctx.isIntrospection && ctx.procedureName) ctx.procedure = this.procedures[ctx.procedureName];
 
             if (this.before) {
                 const result = await this.before(ctx);
@@ -82,10 +87,15 @@ module.exports = require("stampit")({
                 }
             }
 
-            if (!ctx.result) {
-                // object or array -> introspect
-                if (ctx.procedure && typeof ctx.procedure === "object") {
-                    ctx.introspection = this._introspect(ctx);
+            if (!ctx.result && ctx.isIntrospection) {
+                ctx.introspection = this._introspect(ctx);
+                if (ctx.introspection) {
+                    ctx.result = {
+                        success: true,
+                        code: "OK",
+                        message: "Full introspection",
+                        procedures: ctx.introspection,
+                    };
                     await this.transport.prepareIntrospectionReply(ctx);
                 }
             }

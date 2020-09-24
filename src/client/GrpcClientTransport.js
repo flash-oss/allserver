@@ -1,3 +1,5 @@
+const { isFunction } = require("../util");
+
 module.exports = require("./ClientTransport").compose({
     name: "GrpcClientTransport",
 
@@ -24,7 +26,7 @@ module.exports = require("./ClientTransport").compose({
             const pd = this._grpc.loadPackageDefinition(this._protoLoader.loadSync(protoFile));
 
             const Ctor = Object.entries(this._grpc.loadPackageDefinition(pd)).find(
-                ([k, v]) => typeof v === "function" && k !== "Allserver"
+                ([k, v]) => isFunction(v) && k !== "Allserver"
             )[1];
             this._grpcClient = this._createClientFromCtor(Ctor && Ctor.service);
         },

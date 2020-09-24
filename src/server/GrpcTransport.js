@@ -1,6 +1,4 @@
-function isPlainObject(input) {
-    return input && input.constructor === Object;
-}
+const { isPlainObject, isFunction } = require("../util");
 
 module.exports = require("stampit")({
     name: "GrpcTransport",
@@ -69,11 +67,11 @@ module.exports = require("stampit")({
 
             const protoDescriptor = this._grpc.loadPackageDefinition(packageDefinition);
             for (const typeOfProto of Object.values(protoDescriptor)) {
-                if (!(typeof typeOfProto === "function" && isPlainObject(typeOfProto.service))) continue;
+                if (!(isFunction(typeOfProto) && isPlainObject(typeOfProto.service))) continue;
 
                 const proxies = { introspect: wrappedCallback };
                 for (const [name, impl] of Object.entries(defaultCtx.allserver.procedures)) {
-                    if (typeof impl == "function") proxies[name] = wrappedCallback;
+                    if (isFunction(impl)) proxies[name] = wrappedCallback;
                 }
                 this.server.addService(typeOfProto.service, proxies);
             }
@@ -93,9 +91,11 @@ module.exports = require("stampit")({
         },
 
         getProcedureName(ctx) {
-            const procedureName = ctx.grpc.call.call.handler.path.split("/").pop();
-            if (procedureName === "introspect") return "";
-            return procedureName;
+            return ctx.grpc.call.call.handler.path.split("/").pop();
+        },
+
+        isIntrospection(ctx) {
+            return this.getProcedureName(ctx) === "introspect";
         },
 
         prepareNotFoundReply(ctx) {
