@@ -27,68 +27,6 @@ describe("Allserver", () => {
             assert.strictEqual(ctx.callNumber, 1);
         });
 
-        it("should call 'before' middleware", async () => {
-            let beforeCalled = false;
-            const server = Allserver({
-                async before() {
-                    beforeCalled = true;
-                    return 42;
-                },
-            });
-
-            const ctx = { void: { proc: "testMethod" } };
-            await server.handleCall(ctx);
-
-            assert(beforeCalled);
-            assert.deepStrictEqual(ctx.result, 42);
-        });
-
-        it("should call 'after' middleware", async () => {
-            let afterCalled = false;
-            const server = Allserver({
-                async after() {
-                    afterCalled = true;
-                    return 42;
-                },
-            });
-
-            const ctx = { void: { proc: "testMethod" } };
-            await server.handleCall(ctx);
-
-            assert(afterCalled);
-            assert.deepStrictEqual(ctx.result, 42);
-        });
-
-        it("should introspect", async () => {
-            let replied = false;
-            const MockedTransport = VoidTransport.methods({
-                getProcedureName(ctx) {
-                    assert.strictEqual(ctx.void.proc, "introspect");
-                    return "";
-                },
-                prepareIntrospectionReply(ctx) {
-                    ctx.result = {
-                        success: true,
-                        code: "OK",
-                        message: "Introspection as JSON string",
-                        procedures: ctx.introspection,
-                    };
-                },
-                reply(ctx) {
-                    assert.deepStrictEqual(ctx.introspection, { foo: "function", bar: "function" });
-                    replied = true;
-                },
-            });
-            const server = Allserver({
-                procedures: { foo() {}, bar() {} },
-                transport: MockedTransport(),
-            });
-
-            const ctx = { void: { proc: "introspect" } };
-            await server.handleCall(ctx);
-            assert(replied);
-        });
-
         it("should reply PROCEDURE_NOT_FOUND", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
@@ -222,6 +160,191 @@ describe("Allserver", () => {
             assert(promise.then);
             await promise;
             assert(started);
+        });
+    });
+
+    describe("#stop", () => {
+        it("should call transport stopServer()", async () => {
+            let stopped = false;
+            const MockedTransport = VoidTransport.methods({
+                async stopServer() {
+                    stopped = true;
+                },
+            });
+
+            const server = Allserver({ transport: MockedTransport() });
+            const promise = server.stop();
+
+            assert(promise.then);
+            await promise;
+            assert(stopped);
+        });
+    });
+
+    describe("introspection", () => {
+        it("should disable introspection", async () => {
+            let replied = false;
+            const MockedTransport = VoidTransport.methods({
+                async prepareIntrospectionReply(ctx) {
+                    assert(!ctx.introspection);
+                },
+                async reply(ctx) {
+                    assert.strictEqual(ctx.result, undefined);
+                    replied = true;
+                },
+            });
+            const server = Allserver({ introspection: false, transport: MockedTransport() });
+
+            let ctx = { void: { proc: "" } };
+            await server.handleCall(ctx);
+
+            assert(replied);
+        });
+
+        it("should disable introspection via function", async () => {
+            let replied = false;
+            const MockedTransport = VoidTransport.methods({
+                async prepareIntrospectionReply(ctx) {
+                    assert(!ctx.introspection);
+                },
+                async reply(ctx) {
+                    assert.strictEqual(ctx.result, undefined);
+                    replied = true;
+                },
+            });
+            const server = Allserver({ introspection: () => false, transport: MockedTransport() });
+
+            let ctx = { void: { proc: "" } };
+            await server.handleCall(ctx);
+
+            assert(replied);
+        });
+
+        it("should introspect", async () => {
+            let replied = false;
+            const MockedTransport = VoidTransport.methods({
+                getProcedureName(ctx) {
+                    assert.strictEqual(ctx.void.proc, "introspect");
+                    return "";
+                },
+                prepareIntrospectionReply(ctx) {
+                    ctx.result = {
+                        success: true,
+                        code: "OK",
+                        message: "Introspection as JSON string",
+                        procedures: ctx.introspection,
+                    };
+                },
+                reply(ctx) {
+                    assert.deepStrictEqual(ctx.introspection, { foo: "function", bar: "function" });
+                    replied = true;
+                },
+            });
+            const server = Allserver({
+                procedures: { foo() {}, bar() {} },
+                transport: MockedTransport(),
+            });
+
+            const ctx = { void: { proc: "introspect" } };
+            await server.handleCall(ctx);
+            assert(replied);
+        });
+    });
+
+    describe("middleware", () => {
+        it("should call 'before'", async () => {
+            let called = false;
+            const server = Allserver({
+                before(ctx) {
+                    assert.deepStrictEqual(ctx, {
+                        callNumber: 0,
+                        procedure: server.procedures.testMethod,
+                        procedureName: "testMethod",
+                        void: {
+                            proc: "testMethod",
+                        },
+                    });
+                    called = true;
+                },
+            });
+
+            let ctx = { void: { proc: "testMethod" } };
+            await server.handleCall(ctx);
+
+            assert(called);
+        });
+
+        it("should return 'before' result", async () => {
+            let replied = false;
+            const MockedTransport = VoidTransport.methods({
+                async reply(ctx) {
+                    assert.strictEqual(ctx.result, 42);
+                    replied = true;
+                },
+            });
+            const server = Allserver({
+                transport: MockedTransport(),
+                before() {
+                    // There must be no result yet
+                    assert(!ctx.result);
+                    return 42;
+                },
+            });
+
+            let ctx = { void: { proc: "testMethod" } };
+            await server.handleCall(ctx);
+
+            assert(replied);
+        });
+
+        it("should call 'after'", async () => {
+            let called = false;
+            const server = Allserver({
+                after(ctx) {
+                    assert.deepStrictEqual(ctx, {
+                        callNumber: 0,
+                        procedure: server.procedures.testMethod,
+                        procedureName: "testMethod",
+                        result: {
+                            code: "SUCCESS",
+                            message: "Success",
+                            success: true,
+                        },
+                        void: {
+                            proc: "testMethod",
+                        },
+                    });
+                    called = true;
+                },
+            });
+
+            let ctx = { void: { proc: "testMethod" } };
+            await server.handleCall(ctx);
+
+            assert(called);
+        });
+
+        it("should return 'after' result", async () => {
+            let replied = false;
+            const MockedTransport = VoidTransport.methods({
+                async reply(ctx) {
+                    assert.strictEqual(ctx.result, 42);
+                    replied = true;
+                },
+            });
+            const server = Allserver({
+                transport: MockedTransport(),
+                after(ctx) {
+                    // There already must be a result
+                    assert(ctx.result);
+                    return 42;
+                },
+            });
+
+            let ctx = { void: { proc: "testMethod" } };
+            await server.handleCall(ctx);
+
+            assert(replied);
         });
     });
 });

@@ -7,8 +7,8 @@ module.exports = require("stampit")({
         transport: null,
         procedures: {},
         introspection: () => true,
-        before: () => {},
-        after: () => {},
+        before: null,
+        after: null,
     },
 
     init({ procedures, transport, introspection, before, after, logger }) {
@@ -23,7 +23,7 @@ module.exports = require("stampit")({
     methods: {
         _introspect(ctx, procedure) {
             const on = this.introspection;
-            if (!on || (typeof on === "function" && !on(ctx))) {
+            if (typeof on === "function" ? !on(ctx) : !on) {
                 return;
             }
 

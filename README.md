@@ -13,8 +13,8 @@ There are loads of developer video presentations where people rant about how thi
 Problems I had:
 
 - The HTTP status codes were never enough as error explanation. I always had to analise: firstly the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
-- Server side HTTP routing via slash `/` is not simple enough. What this route is for `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `crateUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`.
-- The HTTP methods are a pain point of any REST API. Is it `POST` or `PUT` or `PATCH`? Should it be `DELETE` or `POST` when I remove a permission to a file from a user? I know it should be `POST`, but it's confusing to call `POST` when I need to do REMOVE something. Protocol-level methods are never enough.
+- REST route naming is not clear enough. What this route is for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
+- The HTTP methods are a pain point of any REST API. Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to do REMOVE something. Protocol-level methods are never enough.
 - The GraphQL has great DX and tooling, but it is not a good fit for microservices. It adds too much complexity and is performance unfriendly (slow).
 - When a performance scaling was needed I had to rewrite an entire service and client codes to more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
 - HTTP monitoring tools were alarming errors when I was trying to check if a user with email `bla@example.com` exists (REST reply HTTP 404). Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors.
