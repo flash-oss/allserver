@@ -60,7 +60,7 @@ Also, the main driving force was my vast experience splitting monolith servers o
      - `400` only if request structure is malformed. Never else.
      - `401`/`403` if bad auth.
      - the `200` status code will **always** be returned if the route was found, including unexpected exceptions.
-   - gRPC and other protocols should expect the server to reply protocol-level errors if procedure was not found, or the data is malformed. Otherwise, returns the object of the same shape otherwise.
+   - gRPC and other protocols should expect the server to reply protocol-level errors if procedure was not found, or the data is malformed. Otherwise, returns the object of the same shape.
 1. **All procedures must accept single argument - JavaScript options object**
    - This makes your (micro)service protocol agnostic.
 1. **Procedures introspection (aka programmatic discovery) should work out of the box**
@@ -197,6 +197,8 @@ Note, that this code is **same** as the gRPC client code example below!
 
 ```js
 const { AllserverClient } = require("allserver");
+// or 
+const AllserverClient = require("allserver/Client");
 
 const client = AllserverClient({ uri: "http://localhost:4000" });
 
@@ -271,6 +273,8 @@ Note, that this code is **same** as the HTTP client code example above!
 
 ```js
 const { AllserverClient } = require("allserver");
+// or 
+const AllserverClient = require("allserver/Client");
 
 const client = AllserverClient({ uri: "gprs://localhost:50051" });
 
