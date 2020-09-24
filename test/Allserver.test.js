@@ -347,4 +347,16 @@ describe("Allserver", () => {
             assert(replied);
         });
     });
+
+    describe("init", () => {
+        it("should init", () => {
+            const server = require("..").Allserver();
+
+            // Creates HttpTransport by default
+            assert(server.transport._micro);
+
+            // Users console logger by default
+            assert.strictEqual(server.logger, console);
+        });
+    });
 });

@@ -22,13 +22,12 @@ module.exports = require("stampit")({
     },
 
     methods: {
-        _validatePackageDefinition(obj = this.packageDefinition, inspectedSet = new Set()) {
-            if (!isPlainObject(obj)) return;
-            if (inspectedSet.has(obj)) return;
-            inspectedSet.add(obj);
+        _validateResponseTypes(obj, inspectedSet = new Set()) {
+            inspectedSet.add(obj); // circle linking protection
 
-            // TODO: Add /Allserver/introspect presence check
             for (const [k, v] of Object.entries(obj)) {
+                if (!isPlainObject(v) || inspectedSet.has(obj)) continue;
+
                 // Not sure how long this code would survive in modern fast pace days.
                 if (k === "responseType") {
                     let f = v.type.field[0];
@@ -43,9 +42,19 @@ module.exports = require("stampit")({
                     const messageOk = f && f.name === "message" && f.type === "TYPE_STRING";
                     if (!messageOk) throw new Error(`Method ${obj.originalName} must return "string message = 3"`);
                 } else {
-                    this._validatePackageDefinition(v, inspectedSet);
+                    this._validateResponseTypes(v, inspectedSet);
                 }
             }
+        },
+
+        _validatePackageDefinition(packageDefinition) {
+            if (!isPlainObject(packageDefinition)) return;
+
+            if (!packageDefinition.Allserver || !packageDefinition.Allserver.introspect) {
+                throw new Error(`Server .proto file is missing Allserver mandatory introspection declarations`);
+            }
+
+            this._validateResponseTypes(packageDefinition);
         },
 
         async startServer(defaultCtx) {
@@ -56,7 +65,7 @@ module.exports = require("stampit")({
             }
 
             const packageDefinition = this._protoLoader.loadSync(this.protoFile);
-            this._validatePackageDefinition(this.packageDefinition);
+            this._validatePackageDefinition(packageDefinition);
 
             const protoDescriptor = this._grpc.loadPackageDefinition(packageDefinition);
             for (const typeOfProto of Object.values(protoDescriptor)) {
