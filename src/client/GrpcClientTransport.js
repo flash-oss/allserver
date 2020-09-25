@@ -17,7 +17,6 @@ module.exports = require("./ClientTransport").compose({
         );
         if (protoFile) {
             this._createMainClient(protoFile);
-            this.autoIntrospect = false;
         }
     },
 
@@ -40,7 +39,7 @@ module.exports = require("./ClientTransport").compose({
                 this._grpcClientForIntrospection.introspect({}, (err, result) => (err ? reject(err) : resolve(result)))
             );
 
-            if (this.autoIntrospect && result.proto) {
+            if (result.proto) {
                 // Writing to a temporary file because protoLoader.loadSync() supports files only.
                 const fileName = require("path").join(
                     require("os").tmpdir(),

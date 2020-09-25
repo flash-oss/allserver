@@ -98,28 +98,13 @@ module.exports = require("stampit")({
             return this.getProcedureName(ctx) === "introspect";
         },
 
-        prepareNotFoundReply(ctx) {
-            ctx.result = {
-                success: false,
-                code: "PROCEDURE_NOT_FOUND",
-                message: `Procedure ${ctx.procedureName} not found`,
-            };
-        },
-        prepareProcedureErrorReply(ctx) {
-            ctx.result = { success: false, code: ctx.error.code || "PROCEDURE_ERROR", message: ctx.error.message };
-        },
+        prepareNotFoundReply(ctx) {},
         async prepareIntrospectionReply(ctx) {
             if (!this.protoFileContents) {
                 this.protoFileContents = this._fs.readFileSync(this.protoFile, "utf8");
             }
 
-            ctx.result = {
-                success: true,
-                code: "OK",
-                message: "Introspection as JSON string",
-                procedures: JSON.stringify(ctx.introspection),
-                proto: this.protoFileContents,
-            };
+            ctx.result.proto = this.protoFileContents;
         },
 
         reply(ctx) {

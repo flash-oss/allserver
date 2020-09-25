@@ -1,10 +1,12 @@
 # Allserver
 
-Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. Think HTTP, gRPC, WebSockets, Lambda, in-memory RPC (Remote Procedure Call) using exactly the same client and server code.
+Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. Think HTTP, gRPC, WebSockets, Lambda, inter-process, unix sockets, etc. RPC using exactly the same client and server code.
 
-Should be used for (micro)services where NodeJS can run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
+Should be used for (micro)services where NodeJS is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
 
-Call gRPC server methods from browser/curl/Postman. Convert your HTTP server to gRPC with single line change. Call any transport/protocol server methods with exactly the same client-side code.
+* Call gRPC server methods from browser/curl/Postman.
+* Convert your HTTP server to gRPC with single line change.
+* Call any transport/protocol server methods with exactly the same client-side code.
 
 ## Why Allserver exists?
 
@@ -43,11 +45,18 @@ Also, the main driving force was my vast experience splitting monolith servers o
 ## Core principles
 
 1. **Always choose DX (Developer Experience) over everything else**
+   - Otherwise, Allserver won't differ from all the other alternatives.
 1. **Switching between data protocols must be as easy as changing single config value**
    - Common example is when you want to convert your (micro)service from HTTP to gRPC.
    - Or if you want to call the gRPC server you are developing but don't have the gRPC client, so you use [Postman](https://www.postman.com/downloads/), `curl` or a browser (HTTP) for that.
+   - Or you are moving the procedure/function/method to another (micro)service employing different communication protocol and infrastructure. E.g. when migrating from a monolith to serverless architecture.
 1. **Calling procedures client side must be as easy as a regular function call**
    - `const { success, user } = await client.updateUser({ id: 622, firstName: "Hui" })`
+   - Hence, the next core principle...
+1. **Exceptions should be thrown only if**
+   - a) the remote server is not available (to mimic a programmer error when the `client` variable is missing - `Uncaught TypeError: Cannot read property 'updateUser' of undefined`)
+   - b) the procedure does not exist (to mimic a programmer error when `updateUser` method is missing - `Uncaught TypeError: client.updateUser is not a function`)
+   - All the other times the object of the following shape is returned: `success,code,message,...`.
 1. **Procedures (aka routes, aka methods, aka handlers) must always return same shaped interface regardless of everything**
    - This makes your (micro)service protocol agnostic.
    - HTTP server must always return `{success:Boolean, code:String, message:String}`.
@@ -112,7 +121,8 @@ Or do gRPC requests using any module you like.
 
 ## Code examples
 
-### Procedures (aka routes, aka schema, aka handlers)
+### Procedures
+(aka routes, aka schema, aka handlers, aka functions, aka methods)
 
 These are you business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service or expose via a GraphQL API.
 
@@ -197,7 +207,7 @@ Note, that this code is **same** as the gRPC client code example below!
 
 ```js
 const { AllserverClient } = require("allserver");
-// or 
+// or
 const AllserverClient = require("allserver/Client");
 
 const client = AllserverClient({ uri: "http://localhost:4000" });
@@ -273,7 +283,7 @@ Note, that this code is **same** as the HTTP client code example above!
 
 ```js
 const { AllserverClient } = require("allserver");
-// or 
+// or
 const AllserverClient = require("allserver/Client");
 
 const client = AllserverClient({ uri: "gprs://localhost:50051" });
@@ -360,15 +370,15 @@ const allserver = Allserver({ procedures, logger: new MyShinyLogger() });
 You can add only **one** pre-middleware, but also **one** post-middleware.
 
 ```js
-const allserver = Allserver({ 
+const allserver = Allserver({
   procedures,
   before(ctx) {
-    console.log(ctx.procedureName, ctx.procedure, ctx.arg);  
+    console.log(ctx.procedureName, ctx.procedure, ctx.arg);
   },
   after(ctx) {
-    console.log(ctx.procedureName, ctx.procedure, ctx.arg);  
-    console.log(ctx.introspection, ctx.result, ctx.error);    
-  }
+    console.log(ctx.procedureName, ctx.procedure, ctx.arg);
+    console.log(ctx.introspection, ctx.result, ctx.error);
+  },
 });
 ```
 

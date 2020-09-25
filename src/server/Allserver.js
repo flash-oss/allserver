@@ -32,17 +32,30 @@ module.exports = require("stampit")({
             assert(Object.values(this.procedures).every(isFunction), "All procedures must be functions");
         },
 
-        _introspect(ctx) {
+        async _introspect(ctx) {
             const allow = isFunction(this.introspection) ? this.introspection(ctx) : this.introspection;
             if (!allow) return;
 
             const obj = {};
             for (const [key, value] of Object.entries(this.procedures)) obj[key] = typeof value;
-            return obj;
+            ctx.introspection = obj;
+
+            ctx.result = {
+                success: true,
+                code: "OK",
+                message: "Introspection as JSON string",
+                procedures: JSON.stringify(ctx.introspection),
+            };
+            await this.transport.prepareIntrospectionReply(ctx);
         },
 
         async _callProcedure(ctx) {
             if (!isFunction(ctx.procedure)) {
+                ctx.result = {
+                    success: false,
+                    code: "PROCEDURE_NOT_FOUND",
+                    message: `Procedure ${ctx.procedureName} not found`,
+                };
                 await this.transport.prepareNotFoundReply(ctx);
                 return;
             }
@@ -53,7 +66,7 @@ module.exports = require("stampit")({
             } catch (err) {
                 this.logger.error("PROCEDURE_ERROR", err);
                 ctx.error = err;
-                await this.transport.prepareProcedureErrorReply(ctx);
+                ctx.result = { success: false, code: err.code || "PROCEDURE_ERROR", message: err.message };
                 return;
             }
 
@@ -87,22 +100,12 @@ module.exports = require("stampit")({
                 }
             }
 
-            if (!ctx.result && ctx.isIntrospection) {
-                ctx.introspection = this._introspect(ctx);
-                if (ctx.introspection) {
-                    ctx.result = {
-                        success: true,
-                        code: "OK",
-                        message: "Full introspection",
-                        procedures: ctx.introspection,
-                    };
-                    await this.transport.prepareIntrospectionReply(ctx);
-                }
-            }
-
             if (!ctx.result) {
-                // function -> call it
-                await this._callProcedure(ctx);
+                if (ctx.isIntrospection) {
+                    await this._introspect(ctx);
+                } else {
+                    await this._callProcedure(ctx);
+                }
             }
 
             if (this.after) {

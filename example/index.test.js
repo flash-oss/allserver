@@ -26,29 +26,6 @@ const procedures = {
 
 const { Allserver, HttpTransport, GrpcTransport, AllserverClient } = require("..");
 
-async function callClientMethods(client) {
-    console.log(1, await client.sayHello({ name: "world" }));
-    console.log(2, await client.sayHello({ name: "world" }));
-
-    let response = await client.introspect({});
-    console.log("Procedures:", response.procedures);
-
-    await client.introspection({ enable: false });
-    console.log("Disabled introspection");
-    response = await client.introspect().catch((err) => err.message);
-    console.error("Procedures:", response);
-    await client.introspection({ enable: true });
-    console.log("Enabled introspection");
-    response = await client.introspect();
-    console.log("Procedures:", response.procedures);
-
-    console.log("Gates 0, 1, 2, 3");
-    for (const number of [0, 1, 2, 3]) console.log(await client.gate({ number }));
-
-    response = await client.throws({});
-    console.log("Throws:", response);
-}
-
 setTimeout(async () => {
     // HTTP
     console.log("\nHTTP");
@@ -86,3 +63,26 @@ setTimeout(async () => {
     await callClientMethods(grpcClient);
     await grpcServer.stop();
 }, 1);
+
+async function callClientMethods(client) {
+    console.log(1, await client.sayHello({ name: "world" }));
+    console.log(2, await client.sayHello({ name: "world" }));
+
+    let response = await client.introspect({});
+    console.log("Procedures:", response.procedures);
+
+    await client.introspection({ enable: false });
+    console.log("Disabled introspection");
+    response = await client.introspect().catch((err) => err.message);
+    console.log("Procedures:", response);
+    await client.introspection({ enable: true });
+    console.log("Enabled introspection");
+    response = await client.introspect();
+    console.log("Procedures:", response.procedures);
+
+    console.log("Gates 0, 1, 2, 3");
+    for (const number of [0, 1, 2, 3]) console.log(await client.gate({ number }));
+
+    response = await client.throws({});
+    console.log("Throws:", response);
+}

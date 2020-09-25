@@ -70,24 +70,9 @@ module.exports = require("stampit")({
         },
 
         prepareNotFoundReply(ctx) {
-            ctx.result = {
-                success: false,
-                code: "PROCEDURE_NOT_FOUND",
-                message: `Procedure ${ctx.procedureName} not found`,
-            };
             ctx.http.statusCode = 404;
         },
-        prepareProcedureErrorReply(ctx) {
-            ctx.result = { success: false, code: ctx.error.code || "PROCEDURE_ERROR", message: ctx.error.message };
-        },
-        prepareIntrospectionReply(ctx) {
-            ctx.result = {
-                success: true,
-                code: "OK",
-                message: "Introspection as JSON string",
-                procedures: ctx.introspection,
-            };
-        },
+        prepareIntrospectionReply(ctx) {},
 
         reply(ctx) {
             if (!ctx.http.statusCode) ctx.http.statusCode = 200;
