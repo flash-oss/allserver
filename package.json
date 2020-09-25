@@ -1,7 +1,7 @@
 {
   "name": "allserver",
   "version": "0.0.6",
-  "description": "Multi-protocol simple RPC server and optional client. Boilerplate-less. Opinionated. Minimalistic.",
+  "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic.",
   "main": "src/index.js",
   "scripts": {
     "lint": "eslint ./",
@@ -17,7 +17,7 @@
     "microservice"
   ],
   "files": [
-    "src"
+    "src", "*.js", "mandatory.proto"
   ],
   "repository": {
     "type": "git",
