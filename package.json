@@ -1,6 +1,6 @@
 {
   "name": "allserver",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic.",
   "main": "src/index.js",
   "scripts": {
@@ -17,7 +17,9 @@
     "microservice"
   ],
   "files": [
-    "src", "*.js", "mandatory.proto"
+    "src",
+    "*.js",
+    "mandatory.proto"
   ],
   "repository": {
     "type": "git",
