@@ -54,7 +54,12 @@ describe("AllserverClient", () => {
         it("should not throw if neverThrow enabled", async () => {
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
-                    return { success: true, code: "OK", message: "Ok", procedures: { foo: "function" } };
+                    return {
+                        success: true,
+                        code: "OK",
+                        message: "Ok",
+                        procedures: JSON.stringify({ foo: "function" }),
+                    };
                 },
                 call: () => Promise.reject(new Error("Cannot reach server")),
             });
@@ -98,7 +103,12 @@ describe("AllserverClient", () => {
         it("should introspect and add methods before call", async () => {
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
-                    return { success: true, code: "OK", message: "Ok", procedures: { foo: "function" } };
+                    return {
+                        success: true,
+                        code: "OK",
+                        message: "Ok",
+                        procedures: JSON.stringify({ foo: "function" }),
+                    };
                 },
                 async call(procedureName, arg) {
                     assert.strictEqual(procedureName, "foo");
@@ -136,7 +146,12 @@ describe("AllserverClient", () => {
         it("should not override existing methods", async () => {
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
-                    return { success: true, code: "OK", message: "Ok", procedures: { foo: "function" } };
+                    return {
+                        success: true,
+                        code: "OK",
+                        message: "Ok",
+                        procedures: JSON.stringify({ foo: "function" }),
+                    };
                 },
                 async call() {
                     assert.fail("should not call transport");
@@ -170,7 +185,12 @@ describe("AllserverClient", () => {
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
                     introspectionCalls += 1;
-                    return { success: true, code: "OK", message: "Ok", procedures: { foo: "function" } };
+                    return {
+                        success: true,
+                        code: "OK",
+                        message: "Ok",
+                        procedures: JSON.stringify({ foo: "function" }),
+                    };
                 },
                 async call() {
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
@@ -188,12 +208,12 @@ describe("AllserverClient", () => {
             assert.strictEqual(introspectionCalls, 1);
         });
 
-        it("should introspect same uri only once even if first introspection fails", async () => {
+        it("should re-introspect failed introspections", async () => {
             let introspectionCalls = 0;
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
                     introspectionCalls += 1;
-                    throw new Error("Shit happens, but only once :)");
+                    throw new Error("Shit happens twice");
                 },
                 async call() {
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
@@ -201,14 +221,16 @@ describe("AllserverClient", () => {
             });
 
             for (let i = 1; i <= 2; i += 1) {
-                const client = AllserverClient({ transport: MockedTransport({ uri: "void://very-unique-address-2" }) });
+                const client = AllserverClient({
+                    transport: MockedTransport({ uri: "void://very-unique-address-2" }),
+                });
                 assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it
                 const result = await client.foo({ a: 1 });
                 assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
                 assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
             }
 
-            assert.strictEqual(introspectionCalls, 1);
+            assert.strictEqual(introspectionCalls, 2);
         });
 
         it("should not auto introspect if asked so", (done) => {
@@ -237,9 +259,9 @@ describe("AllserverClient", () => {
         });
     });
 
-    describe("#setup", () => {
+    describe("#defaults", () => {
         it("should work", () => {
-            const NewClient = AllserverClient.setup({
+            const NewClient = AllserverClient.defaults({
                 neverThrow: true,
                 dynamicMethods: false,
                 autoIntrospect: false,

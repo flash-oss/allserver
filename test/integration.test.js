@@ -70,12 +70,29 @@ Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", () => {
     describe("http", () => {
+        const fetch = require("node-fetch");
+
         it("should behave with AllserverClient", async () => {
+            const httpClient = AllserverClient({ uri: "http://localhost:4000", neverThrow: true });
+
+            let response;
+            response = await httpClient.sayHello({ name: "world" });
+            assert.strictEqual(response.success, false);
+            assert.strictEqual(response.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
+            assert.strictEqual(response.error.code, "ECONNREFUSED");
+
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
             httpServer.start();
-            const httpClient = AllserverClient({ uri: "http://localhost:4000" });
 
             await callClientMethods(httpClient);
+
+            // HTTP-ony specific tests
+
+            // Should return 404
+            response = await httpClient.unexist();
+            assert.strictEqual(response.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(response.error.status, 404);
 
             await httpServer.stop();
         });
@@ -84,14 +101,31 @@ describe("integration", () => {
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
             httpServer.start();
 
-            const fetch = require("node-fetch");
-            const response = await (
+            let response;
+
+            response = await (
                 await fetch("http://localhost:4000/sayHello", {
                     method: "POST",
                     body: JSON.stringify({ name: "world" }),
                 })
             ).json();
             assert.deepStrictEqual(response, { success: true, code: "SUCCESS", message: "Hello world" });
+
+            // HTTP-ony specific tests
+
+            // Should return 400
+            response = await fetch("http://localhost:4000/sayHello", {
+                method: "POST",
+                body: Buffer.allocUnsafe(999),
+            });
+            assert(!response.ok);
+            assert.strictEqual(response.status, 400);
+
+            // Should call using GET with query params
+            response = await fetch("http://localhost:4000/sayHello?name=world");
+            assert(response.ok);
+            const body = await response.json();
+            assert.deepStrictEqual(body, { success: true, code: "SUCCESS", message: "Hello world" });
 
             const httpClient = AllserverClient({ uri: "http://localhost:4000" });
             await callClientMethods(httpClient);
@@ -101,12 +135,24 @@ describe("integration", () => {
 
     describe("grpc", () => {
         it("should behave with AllserverClient", async () => {
+            const grpcClient = AllserverClient({ uri: "grpc://localhost:50051", neverThrow: true });
+
+            let response;
+            response = await grpcClient.sayHello({ name: "world" });
+            assert.strictEqual(response.success, false);
+            assert.strictEqual(response.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
+            assert.strictEqual(response.error.message, "MISSING_GRPC_PROTO");
+
             const grpcServer = Allserver({
                 procedures,
-                transport: GrpcTransport({ protoFile: __dirname + "/allserver_integration_test.proto", port: 50051 }),
+                transport: GrpcTransport({
+                    protoFile: __dirname + "/allserver_integration_test.proto",
+                    port: 50051,
+                    options: {},
+                }),
             });
             await grpcServer.start();
-            const grpcClient = AllserverClient({ uri: "grpc://localhost:50051" });
 
             await callClientMethods(grpcClient);
 

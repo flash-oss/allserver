@@ -3,12 +3,15 @@ const { isString } = require("../util");
 // Protected variables
 const p = Symbol.for("AllserverClient");
 
-function addProceduresToObject(target, introspectionResult) {
-    const { success, procedures } = introspectionResult;
-    if (!success || !procedures) return; // The auto introspection result failed. Do nothing.
-    for (const [procedureName, type] of Object.entries(procedures)) {
-        if (type !== "function" || target[procedureName]) continue;
-        target[procedureName] = (...args) => target.call(procedureName, ...args);
+function addProceduresToObject(allserverClient, procedures) {
+    try {
+        procedures = JSON.parse(procedures);
+    } catch (err) {
+        throw new Error("Malformed introspection");
+    }
+    for (const [procedureName, type] of Object.entries(procedures || {})) {
+        if (type !== "function" || allserverClient[procedureName]) continue;
+        allserverClient[procedureName] = (...args) => allserverClient.call(procedureName, ...args);
     }
 }
 
@@ -30,9 +33,9 @@ function proxyWrappingInitialiser() {
                 const introspectionCache = allserverClient.__proto__._introspectionCache;
                 // Let's see if we already introspected that server.
                 const introspectionResult = introspectionCache.get(uri);
-                if (introspectionResult) {
+                if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
                     // Yeah. We already introspected it. Note! The introspection might was unsuccessful.
-                    addProceduresToObject(allserverClient, introspectionResult);
+                    addProceduresToObject(allserverClient, introspectionResult.procedures);
                     if (procedureName in allserverClient) {
                         // The PREVIOUS auto introspection worked as expected. It added a method to the client object.
                         return Reflect.get(allserverClient, procedureName, thisContext);
@@ -45,9 +48,12 @@ function proxyWrappingInitialiser() {
                     // Ok. Automatic introspection is necessary. Let's do it.
                     return async (...args) => {
                         const introspectionResult = await allserverClient.introspect();
-                        // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
                         introspectionCache.set(uri, introspectionResult);
-                        addProceduresToObject(allserverClient, introspectionResult);
+
+                        if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
+                            // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
+                            addProceduresToObject(allserverClient, introspectionResult.procedures);
+                        }
 
                         if (procedureName in allserverClient) {
                             // This is the main happy path.
@@ -153,7 +159,7 @@ module.exports = require("stampit")({
     },
 
     statics: {
-        setup({ transport, neverThrow, dynamicMethods, autoIntrospect } = {}) {
+        defaults({ transport, neverThrow, dynamicMethods, autoIntrospect } = {}) {
             return this.deepProps({ [p]: { transport, neverThrow, dynamicMethods, autoIntrospect } });
         },
     },

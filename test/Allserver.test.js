@@ -28,6 +28,22 @@ describe("Allserver", () => {
             assert.strictEqual(ctx.callNumber, 1);
         });
 
+        it("should call if procedures is an array", async () => {
+            let called = false;
+            const server = Allserver({
+                procedures: [
+                    () => {
+                        called = true;
+                        return 42;
+                    },
+                ],
+            });
+
+            let ctx = { void: { proc: "0" } };
+            await server.handleCall(ctx);
+            assert.strictEqual(called, true);
+        });
+
         it("should reply PROCEDURE_NOT_FOUND", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({

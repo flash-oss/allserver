@@ -24,7 +24,7 @@ module.exports = require("stampit")({
             inspectedSet.add(obj); // circle linking protection
 
             for (const [k, v] of Object.entries(obj)) {
-                if (!isPlainObject(v) || inspectedSet.has(obj)) continue;
+                if (!isPlainObject(v) || inspectedSet.has(v)) continue;
 
                 // Not sure how long this code would survive in modern fast pace days.
                 if (k === "responseType") {
@@ -46,8 +46,6 @@ module.exports = require("stampit")({
         },
 
         _validatePackageDefinition(packageDefinition) {
-            if (!isPlainObject(packageDefinition)) return;
-
             if (!packageDefinition.Allserver || !packageDefinition.Allserver.introspect) {
                 throw new Error(`Server .proto file is missing Allserver mandatory introspection declarations`);
             }

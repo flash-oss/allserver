@@ -79,7 +79,7 @@ module.exports = require("stampit")({
                     success: true,
                     code: "SUCCESS",
                     message: "Success",
-                    [ctx.procedure.name || ctx.procedureName]: result,
+                    [ctx.procedureName]: result,
                 };
             } else {
                 ctx.result = result;

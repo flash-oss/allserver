@@ -32,7 +32,6 @@
   "author": "Vasyl Boroviak",
   "license": "MIT",
   "devDependencies": {
-    "@grpc/proto-loader": "^0.5.5",
     "eslint": "^7.9.0",
     "mocha": "^8.1.3",
     "nyc": "^15.1.0",
@@ -43,6 +42,7 @@
   },
   "optionalDependencies": {
     "@grpc/grpc-js": "^1.1.7",
+    "@grpc/proto-loader": "^0.5.5",
     "micro": "^9.3.4",
     "node-fetch": "^2.6.1"
   },
@@ -58,6 +58,7 @@
     "extends": "eslint:recommended"
   },
   "mocha": {
-    "recursive": true
+    "recursive": true,
+    "exit": true
   }
 }
