@@ -74,7 +74,7 @@ describe("integration", () => {
         const fetch = require("node-fetch");
 
         it("should behave with AllserverClient", async () => {
-            const httpClient = AllserverClient({ uri: "http://localhost:4000" });
+            const httpClient = AllserverClient({ uri: "http://localhost:54000" });
 
             let response;
             response = await httpClient.sayHello({ name: "world" });
@@ -83,7 +83,7 @@ describe("integration", () => {
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
             assert(response.error.message.includes("ECONNREFUSED"));
 
-            const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
+            const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 54000 }) });
             httpServer.start();
 
             await callClientMethods(httpClient);
@@ -99,13 +99,13 @@ describe("integration", () => {
         });
 
         it("should behave with node-fetch", async () => {
-            const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
+            const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 54000 }) });
             httpServer.start();
 
             let response;
 
             response = await (
-                await fetch("http://localhost:4000/sayHello", {
+                await fetch("http://localhost:54000/sayHello", {
                     method: "POST",
                     body: JSON.stringify({ name: "world" }),
                 })
@@ -116,7 +116,7 @@ describe("integration", () => {
             // HTTP-ony specific tests
 
             // Should return 400
-            response = await fetch("http://localhost:4000/sayHello", {
+            response = await fetch("http://localhost:54000/sayHello", {
                 method: "POST",
                 body: Buffer.allocUnsafe(999),
             });
@@ -124,12 +124,12 @@ describe("integration", () => {
             assert.strictEqual(response.status, 400);
 
             // Should call using GET with query params
-            response = await fetch("http://localhost:4000/sayHello?name=world");
+            response = await fetch("http://localhost:54000/sayHello?name=world");
             assert(response.ok);
             const body = await response.json();
             assert.deepStrictEqual(body, expectedHello);
 
-            const httpClient = AllserverClient({ uri: "http://localhost:4000" });
+            const httpClient = AllserverClient({ uri: "http://localhost:54000" });
             await callClientMethods(httpClient);
             await httpServer.stop();
         });
@@ -137,6 +137,7 @@ describe("integration", () => {
 
     describe("grpc", () => {
         const protoFile = __dirname + "/allserver_integration_test.proto";
+
         it("should behave with AllserverClient", async () => {
             let response, grpcClient;
 
