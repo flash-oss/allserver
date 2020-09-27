@@ -4,4 +4,6 @@ module.exports = {
     GrpcTransport: require("./server/GrpcTransport"),
 
     AllserverClient: require("./client/AllserverClient"),
+    GrpcClientTransport: require("./client/GrpcClientTransport"),
+    HttpClientTransport: require("./client/HttpClientTransport"),
 };

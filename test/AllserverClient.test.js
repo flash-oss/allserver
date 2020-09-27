@@ -48,7 +48,10 @@ describe("AllserverClient", () => {
                 call: () => Promise.reject(new Error("Cannot reach server")),
             });
 
-            await assert.rejects(AllserverClient({ transport: MockedTransport() }).call(), /Cannot reach server/);
+            await assert.rejects(
+                AllserverClient({ transport: MockedTransport(), neverThrow: false }).call(),
+                /Cannot reach server/
+            );
         });
 
         it("should not throw if neverThrow enabled", async () => {
@@ -64,9 +67,9 @@ describe("AllserverClient", () => {
                 call: () => Promise.reject(new Error("Cannot reach server")),
             });
 
-            const result = await AllserverClient({ transport: MockedTransport(), neverThrow: true }).call("foo", {});
+            const result = await AllserverClient({ transport: MockedTransport() }).call("foo", {});
             assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(result.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
             assert.strictEqual(result.message, "Couldn't reach remote procedure: foo");
             assert.strictEqual(result.error.message, "Cannot reach server");
         });
@@ -76,12 +79,12 @@ describe("AllserverClient", () => {
                 call: () => Promise.reject(new Error("Shit happens too")),
             });
 
-            const client = AllserverClient({ transport: MockedTransport(), neverThrow: true });
+            const client = AllserverClient({ transport: MockedTransport() });
             assert.strictEqual(Reflect.has(client, "foo"), false); // don't have it
             const result = await client.call("foo", {});
             assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
             assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(result.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
             assert.strictEqual(result.message, "Couldn't reach remote procedure: foo");
             assert.strictEqual(result.error.message, "Shit happens too");
         });
@@ -262,7 +265,7 @@ describe("AllserverClient", () => {
     describe("#defaults", () => {
         it("should work", () => {
             const NewClient = AllserverClient.defaults({
-                neverThrow: true,
+                neverThrow: false,
                 dynamicMethods: false,
                 autoIntrospect: false,
             });
@@ -270,13 +273,13 @@ describe("AllserverClient", () => {
             const p = Symbol.for("AllserverClient");
 
             let protecteds = NewClient.compose.deepProperties[p];
-            assert.strictEqual(protecteds.neverThrow, true);
+            assert.strictEqual(protecteds.neverThrow, false);
             assert.strictEqual(protecteds.dynamicMethods, false);
             assert.strictEqual(protecteds.autoIntrospect, false);
 
             const client = NewClient({ uri: "void://bla" });
             protecteds = client[p];
-            assert.strictEqual(protecteds.neverThrow, true);
+            assert.strictEqual(protecteds.neverThrow, false);
             assert.strictEqual(protecteds.dynamicMethods, false);
             assert.strictEqual(protecteds.autoIntrospect, false);
         });

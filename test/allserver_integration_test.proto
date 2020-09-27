@@ -16,7 +16,7 @@ service Allserver {
 }
 
 service MyService {
-  rpc sayHello (HelloRequest) returns (Reply) {}
+  rpc sayHello (HelloRequest) returns (HelloReply) {}
   rpc introspection (IntrospectionRequest) returns (Reply) {}
   rpc gate(GateRequest) returns (GateReply) {}
   rpc throws(Empty) returns (Reply) {}
@@ -24,6 +24,12 @@ service MyService {
 
 message HelloRequest {
   string name = 1;
+}
+message HelloReply {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  string sayHello = 4;
 }
 
 message IntrospectionRequest {

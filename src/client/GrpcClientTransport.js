@@ -9,9 +9,11 @@ module.exports = require("./ClientTransport").compose({
         _protoLoader: require("@grpc/proto-loader"),
         _grpcClientForIntrospection: null,
         _grpcClient: null,
+        _connectionDelaySec: 10,
     },
 
-    init({ protoFile }) {
+    init({ protoFile, connectionDelaySec }) {
+        this._connectionDelaySec = Number(connectionDelaySec) || this._connectionDelaySec;
         this._createIntrospectionClient();
         if (protoFile) {
             this._createMainClient(protoFile);
@@ -39,9 +41,9 @@ module.exports = require("./ClientTransport").compose({
             return new Ctor(this.uri.substr(7), this._grpc.credentials.createInsecure());
         },
 
-        _waitForReady(client, delay = 10 * 1000) {
+        _waitForReady(client) {
             return new Promise((resolve, reject) =>
-                client.waitForReady(Date.now() + delay, (e) => (e ? reject(e) : resolve()))
+                client.waitForReady(Date.now() + this._connectionDelaySec * 1000, (e) => (e ? reject(e) : resolve()))
             );
         },
 
@@ -49,7 +51,7 @@ module.exports = require("./ClientTransport").compose({
             let result;
             try {
                 // Introspection is the first call usually. The server might be unavailable. Let's not wait for too long.
-                await this._waitForReady(this._grpcClientForIntrospection, 1000).catch((err) => {});
+                await this._waitForReady(this._grpcClientForIntrospection).catch((err) => {});
 
                 result = await new Promise((resolve, reject) =>
                     this._grpcClientForIntrospection.introspect({}, (err, result) =>
@@ -86,10 +88,19 @@ module.exports = require("./ClientTransport").compose({
 
         async call(procedureName = "", arg) {
             if (!this._grpcClient) {
-                throw new Error("MISSING_GRPC_PROTO");
-            } else {
-                await this._waitForReady(this._grpcClient);
+                const error = new Error("gRPC client was not yet initialised");
+                error.code = "GRPC_PROTO_MISSING";
+                throw error;
             }
+
+            if (!this._grpcClient[procedureName]) {
+                const error = new Error(`gRPC client proto file does not have method: ${procedureName}`);
+                error.code = "GRPC_PROTO_INVALID";
+                throw error;
+            }
+
+            await this._waitForReady(this._grpcClient);
+
             return new Promise((resolve, reject) =>
                 this._grpcClient[procedureName](arg || {}, (err, result) => (err ? reject(err) : resolve(result)))
             );

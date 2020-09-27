@@ -1,12 +1,34 @@
 # Allserver
 
-Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. Think HTTP, gRPC, WebSockets, Lambda, inter-process, unix sockets, etc. RPC using exactly the same client and server code.
+Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. Think HTTP, gRPC, WebSockets, Lambda, inter-process, unix sockets, etc Remote Procedure Calls using exactly the same client and server code.
 
 Should be used for (micro)services where NodeJS is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
 
-* Call gRPC server methods from browser/curl/Postman.
-* Convert your HTTP server to gRPC with single line change.
-* Call any transport/protocol server methods with exactly the same client-side code.
+- Call gRPC server methods from browser/curl/Postman.
+- Convert your HTTP server to gRPC with single line change.
+- Call any transport/protocol server methods with exactly the same client-side code.
+
+### Quick example
+
+This is how your code would look like in all execution environments using any communication protocol out there.
+
+Server side:
+```js
+await require("allserver").Allserver({
+  procedures: {
+    sayHello: ({ name }) => "Hello " + name,
+  },
+}).start();
+```
+
+Client side:
+```js
+const { AllserverClient } = require("allserver");
+const client = AllserverClient({ uri: process.env.REMOTE_SERVER_URI });
+const { success, code, sayHello } = await client.sayHello({ name: "Joe" });
+if (success) console.log(sayHello); // "Hello Joe"
+else console.error(code); // something like "ALLSERVER_PROCEDURE_UNREACHABLE"
+```
 
 ## Why Allserver exists?
 
@@ -14,19 +36,20 @@ There are loads of developer video presentations where people rant about how thi
 
 Problems I had:
 
-- The HTTP status codes were never enough as error explanation. I always had to analise: firstly the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
-- REST route naming is not clear enough. What this route is for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
-- The HTTP methods are a pain point of any REST API. Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to do REMOVE something. Protocol-level methods are never enough.
-- The GraphQL has great DX and tooling, but it is not a good fit for microservices. It adds too much complexity and is performance unfriendly (slow).
-- When a performance scaling was needed I had to rewrite an entire service and client codes to more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
+- The HTTP status codes were never enough as error explanation. Firstly, I wrap the HTTP call in a `try-catch`. Then, I always had to analise: the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
+- I got tired of wrapping every RPC call with a `try-catch`. Too much boilerplate for such a ubiquitous operation. 
+- REST route naming is not clear enough. What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
+- The HTTP methods are a pain point of any REST API. Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
+- The HTTP status codes are never enough and overly confusing. If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the requests is perfectly fine. It's the user state (data) is not fine.
+- The GraphQL has great DX and tooling, but it's not a good fit for microservices. It adds too much complexity and is performance unfriendly (slow).
+- When a performance scaling was needed I had to rewrite an entire service and client source code in multiple projects to a more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
 - HTTP monitoring tools were alarming errors when I was trying to check if a user with email `bla@example.com` exists (REST reply HTTP 404). Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors.
-- I got tired of `try-catch`-ing everything. The only time I want to `try-catch` is when a programmer made a mistake (typo), or a remote server is down.
 
 I wanted something which:
 
-- Does not throw exceptions client-side when server-side throws.
+- Does not throw exceptions client-side no matter what.
 - Can be easily mapped to any language, any protocol. Especially to upstream GraphQL mutations.
-- Is simple to read in code, just like a method/function call. Without thinking of protocol-level details for every damn call.
+- Is simple to read in the source code, just like a method/function call. Without thinking of protocol-level details for every damn call.
 - Allows me to test gRPC server from my browser/Postman/curl (via HTTP!) by a simple one line config change.
 - Does not bring tons of npm dependencies with it.
 
@@ -53,10 +76,9 @@ Also, the main driving force was my vast experience splitting monolith servers o
 1. **Calling procedures client side must be as easy as a regular function call**
    - `const { success, user } = await client.updateUser({ id: 622, firstName: "Hui" })`
    - Hence, the next core principle...
-1. **Exceptions should be thrown only if**
-   - a) the remote server is not available (to mimic a programmer error when the `client` variable is missing - `Uncaught TypeError: Cannot read property 'updateUser' of undefined`)
-   - b) the procedure does not exist (to mimic a programmer error when `updateUser` method is missing - `Uncaught TypeError: client.updateUser is not a function`)
-   - All the other times the object of the following shape is returned: `success,code,message,...`.
+1. **Exceptions should be never thrown**
+   - The object of the following shape must always be returned: `success,code,message,...`.
+   - Although, this should be configurable (use `neverThrow: false`).
 1. **Procedures (aka routes, aka methods, aka handlers) must always return same shaped interface regardless of everything**
    - This makes your (micro)service protocol agnostic.
    - HTTP server must always return `{success:Boolean, code:String, message:String}`.
@@ -65,11 +87,7 @@ Also, the main driving force was my vast experience splitting monolith servers o
 1. **Protocol-level things must NOT be used for business-level logic (i.e. no REST)**
    - This makes your (micro)service protocol agnostic.
    - The HTTP status codes must be used for protocol-level errors only.
-     - `404` only if route not found. Never else.
-     - `400` only if request structure is malformed. Never else.
-     - `401`/`403` if bad auth.
-     - the `200` status code will **always** be returned if the route was found, including unexpected exceptions.
-   - gRPC and other protocols should expect the server to reply protocol-level errors if procedure was not found, or the data is malformed. Otherwise, returns the object of the same shape.
+   - Caller should expect the object of the same shape no matter what (configurable though).
 1. **All procedures must accept single argument - JavaScript options object**
    - This makes your (micro)service protocol agnostic.
 1. **Procedures introspection (aka programmatic discovery) should work out of the box**
@@ -122,6 +140,7 @@ Or do gRPC requests using any module you like.
 ## Code examples
 
 ### Procedures
+
 (aka routes, aka schema, aka handlers, aka functions, aka methods)
 
 These are you business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service or expose via a GraphQL API.
@@ -220,7 +239,7 @@ const { success, code, message, user } = await client.updateUser({
 ```
 
 The `AllserverClient` will issue `HTTP POST` request to this URL: `http://localhost:4000/updateUser`.
-The path of the URL is dynamically taken straight from the `client.updateUser` code using the ES6 [`Proxy`](https://stackoverflow.com/a/20147219/188475) class to intercept non-existent property access.
+The path of the URL is dynamically taken straight from the `client.updateUser` calling code using the ES6 [`Proxy`](https://stackoverflow.com/a/20147219/188475) class. In other words, `AllserverClient` intercept non-existent property access.
 
 #### Using any HTTP client (axios in this example)
 
@@ -261,7 +280,7 @@ Note that we are reusing the `procedures` from the example above.
 
 Make sure all the methods in your `.proto` file reply at least three properties: `success, code, message`. Otherwise, the server won't start and will throw an error.
 
-Also, for now, you need to add these [mandatory declarations](https://github.com/flash-oss/allserver/blob/814dbc0cf97069bee338dea7e4b7257b5a9a6f8e/mandatory.proto) to your `.proto` file.
+Also, for now, you need to add these [mandatory declarations](https://github.com/flash-oss/allserver/blob/master/mandatory.proto) to your `.proto` file.
 
 ```js
 const { Allserver, GrpcTransport } = require("allserver");
@@ -331,21 +350,37 @@ const { success, code, message, user } = data;
 1. Only [**unary**](https://grpc.io/docs/what-is-grpc/core-concepts/#unary-rpc) RPC. No streaming of any kind is available. By design.
 1. All the reply `message` definitions must have `bool success = 1; string code = 2; string message = 3;`. Otherwise, server won't start. By design.
 1. You can't have `import` statements in your `.proto` file. (Yet.)
-1. Your server-side `.proto` file must include Allserver's [mandatory declarations](https://github.com/flash-oss/allserver/blob/814dbc0cf97069bee338dea7e4b7257b5a9a6f8e/mandatory.proto). (Yet.)
+1. Your server-side `.proto` file must include Allserver's [mandatory declarations](https://github.com/flash-oss/allserver/blob/master/mandatory.proto). (Yet.)
 
 ## FAQ
 
-### What happens if I call a procedure which does not exist?
+### What happens if I call a procedure but remote server does not reply?
 
-You'll get protocol-level "not found" error - thrown exception (with `success,code,message` JSON in it if possible). This is considered a programmer error, thus must throw.
+If using `AllserverClient` you'll get this result, no exceptions thrown client-side by default:
 
 ```json
 {
   "success": false,
-  "code": "PROCEDURE_NOT_FOUND",
-  "message": "Procedure procedureName not found"
+  "code": "ALLSERVER_PROCEDURE_UNREACHABLE",
+  "message": "Couldn't reach remote procedure: procedureName"
 }
 ```
+
+If using your own client module then you'll get your module default behaviour; typically an exception is thrown.
+
+### What happens if I call a procedure which does not exist?
+
+If using `AllserverClient` you'll get this result, no exceptions thrown client-side by default:
+
+```json
+{
+  "success": false,
+  "code": "ALLSERVER_PROCEDURE_NOT_FOUND",
+  "message": "Procedure not found: procedureName"
+}
+```
+
+If using your own client module then you'll get your module default behaviour; typically an exception is thrown.
 
 ### What happens if I call a procedure which throws?
 
@@ -354,15 +389,20 @@ You'll get a normal reply, no exceptions thrown client-side, but the `success` f
 ```json
 {
   "success": false,
-  "code": "PROCEDURE_ERROR",
-  "message": "'undefined' in not a function"
+  "code": "ALLSERVER_PROCEDURE_ERROR",
+  "message": "`'undefined' in not a function` in: procedureName"
 }
 ```
 
-Also, server would dump the full stack trace to the stderr using its `logger` property (defaults to `console`). Replace the Allserver's logger like this:
+### The Allserver logs to console. How to change that?
+
+In case of internal errors the server would dump the full stack trace to the stderr using its `logger` property (defaults to `console`). Replace the Allserver's logger like this:
 
 ```js
 const allserver = Allserver({ procedures, logger: new MyShinyLogger() });
+// or 
+Allserver = Allserver.defaults({ logger: new MyShinyLogger() });
+const allserver = Allserver({ procedures });
 ```
 
 ### Can I add a middleware?
@@ -384,6 +424,10 @@ const allserver = Allserver({
 
 ### How to add Auth?
 
-You do it yourself. Via the `before` pre-middleware.
+Server side you do it yourself. Via the `before` pre-middleware.
 
 Allserver does not (yet) standardise how the "bad auth" replies should look and feel. That's a discussion we need to take. Refer to the **Core principles** above for insights.
+
+Client side
+ - AllserverClient - not yet possible, TODO.
+ - Your client module - do it yourself.

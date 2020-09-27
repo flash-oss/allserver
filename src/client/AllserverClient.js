@@ -85,7 +85,7 @@ module.exports = require("stampit")({
             // The protocol implementation strategy.
             transport: null,
             // Disable any exception throwing when calling any methods.
-            neverThrow: false,
+            neverThrow: true,
             // Automatically call corresponding remote procedure, even if such method does not exist on this client object.
             dynamicMethods: true,
             // Try automatically fetch and assign methods to this client object.
@@ -136,12 +136,15 @@ module.exports = require("stampit")({
         async call(procedureName, arg) {
             let promise = Promise.resolve(this[p].transport.call(procedureName, arg));
             if (this[p].neverThrow) {
-                promise = promise.catch((err) => ({
-                    success: false,
-                    code: "CANNOT_REACH_REMOTE_PROCEDURE",
-                    message: `Couldn't reach remote procedure: ${procedureName}`,
-                    error: err,
-                }));
+                promise = promise.catch((err) => {
+                    let code = err.code;
+                    let message = err.message;
+                    if (!err.code || err.code === "ALLSERVER_PROCEDURE_UNREACHABLE") {
+                        code = "ALLSERVER_PROCEDURE_UNREACHABLE";
+                        message = `Couldn't reach remote procedure: ${procedureName}`;
+                    }
+                    return { success: false, code, message, error: err };
+                });
             }
             return promise;
         },

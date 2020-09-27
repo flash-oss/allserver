@@ -6,22 +6,23 @@ module.exports = require("stampit")({
     name: "Allserver",
 
     props: {
-        logger: console,
-        callsCount: 0,
-        transport: null,
         procedures: {},
+        transport: null,
+        logger: console,
         introspection: true,
         before: null,
         after: null,
+
+        callsCount: 0,
     },
 
     init({ procedures, transport, introspection, before, after, logger }) {
-        this.transport = transport || this.transport || require("./HttpTransport")();
         this.procedures = procedures || this.procedures;
+        this.transport = transport || this.transport || require("./HttpTransport")();
+        this.logger = logger || this.logger;
         this.introspection = introspection != null ? introspection : this.introspection;
         this.before = before || this.before;
         this.after = after || this.after;
-        this.logger = logger || this.logger;
 
         this._validateProcedures();
     },
@@ -53,8 +54,8 @@ module.exports = require("stampit")({
             if (!isFunction(ctx.procedure)) {
                 ctx.result = {
                     success: false,
-                    code: "PROCEDURE_NOT_FOUND",
-                    message: `Procedure ${ctx.procedureName} not found`,
+                    code: "ALLSERVER_PROCEDURE_NOT_FOUND",
+                    message: `Procedure not found: ${ctx.procedureName}`,
                 };
                 await this.transport.prepareNotFoundReply(ctx);
                 return;
@@ -64,16 +65,18 @@ module.exports = require("stampit")({
             try {
                 result = await ctx.procedure(ctx.arg, ctx);
             } catch (err) {
-                this.logger.error("PROCEDURE_ERROR", err);
+                this.logger.error("ALLSERVER_PROCEDURE_ERROR", err);
                 ctx.error = err;
-                ctx.result = { success: false, code: err.code || "PROCEDURE_ERROR", message: err.message };
+                ctx.result = {
+                    success: false,
+                    code: err.code || "ALLSERVER_PROCEDURE_ERROR",
+                    message: "`" + err.message + "` in: " + ctx.procedureName,
+                };
                 return;
             }
 
             if (result === undefined) {
                 ctx.result = { success: true, code: "SUCCESS", message: "Success" };
-            } else if (result && isString(result)) {
-                ctx.result = { success: true, code: "SUCCESS", message: result };
             } else if (!result || !isBoolean(result.success)) {
                 ctx.result = {
                     success: true,
@@ -124,6 +127,12 @@ module.exports = require("stampit")({
         },
         stop() {
             return this.transport.stopServer();
+        },
+    },
+
+    statics: {
+        defaults({ procedures, transport, logger, introspection, before, after } = {}) {
+            return this.props({ procedures, transport, logger, introspection, before, after });
         },
     },
 });

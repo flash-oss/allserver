@@ -30,9 +30,10 @@ async function callClientMethods(client) {
 
     // twice in a row
     response = await client.sayHello({ name: "world" });
-    assert.deepStrictEqual({ success: true, code: "SUCCESS", message: "Hello world" }, response);
+    const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
+    assert.deepStrictEqual(response, expectedHello);
     response = await client.sayHello({ name: "world" });
-    assert.deepStrictEqual({ success: true, code: "SUCCESS", message: "Hello world" }, response);
+    assert.deepStrictEqual(response, expectedHello);
 
     // Introspection work
     response = await client.introspect({});
@@ -60,12 +61,12 @@ async function callClientMethods(client) {
     response = await client.throws({});
     assert.deepStrictEqual(response, {
         success: false,
-        code: "PROCEDURE_ERROR",
-        message: "Cannot read property 'me' of undefined",
+        code: "ALLSERVER_PROCEDURE_ERROR",
+        message: "`Cannot read property 'me' of undefined` in: throws",
     });
 }
 
-let { Allserver, HttpTransport, GrpcTransport, AllserverClient } = require("..");
+let { Allserver, HttpTransport, GrpcTransport, AllserverClient, GrpcClientTransport } = require("..");
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", () => {
@@ -73,14 +74,14 @@ describe("integration", () => {
         const fetch = require("node-fetch");
 
         it("should behave with AllserverClient", async () => {
-            const httpClient = AllserverClient({ uri: "http://localhost:4000", neverThrow: true });
+            const httpClient = AllserverClient({ uri: "http://localhost:4000" });
 
             let response;
             response = await httpClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            assert.strictEqual(response.error.code, "ECONNREFUSED");
+            assert(response.error.message.includes("ECONNREFUSED"));
 
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
             httpServer.start();
@@ -91,7 +92,7 @@ describe("integration", () => {
 
             // Should return 404
             response = await httpClient.unexist();
-            assert.strictEqual(response.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
             assert.strictEqual(response.error.status, 404);
 
             await httpServer.stop();
@@ -109,7 +110,8 @@ describe("integration", () => {
                     body: JSON.stringify({ name: "world" }),
                 })
             ).json();
-            assert.deepStrictEqual(response, { success: true, code: "SUCCESS", message: "Hello world" });
+            const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
+            assert.deepStrictEqual(response, expectedHello);
 
             // HTTP-ony specific tests
 
@@ -125,7 +127,7 @@ describe("integration", () => {
             response = await fetch("http://localhost:4000/sayHello?name=world");
             assert(response.ok);
             const body = await response.json();
-            assert.deepStrictEqual(body, { success: true, code: "SUCCESS", message: "Hello world" });
+            assert.deepStrictEqual(body, expectedHello);
 
             const httpClient = AllserverClient({ uri: "http://localhost:4000" });
             await callClientMethods(httpClient);
@@ -134,25 +136,42 @@ describe("integration", () => {
     });
 
     describe("grpc", () => {
+        const protoFile = __dirname + "/allserver_integration_test.proto";
         it("should behave with AllserverClient", async () => {
-            const grpcClient = AllserverClient({ uri: "grpc://localhost:50051", neverThrow: true });
+            let response, grpcClient;
 
-            let response;
+            // With protoFile
+            grpcClient = AllserverClient({
+                transport: GrpcClientTransport({ protoFile, uri: "grpc://localhost:50051", connectionDelaySec: 0.1 }),
+            });
             response = await grpcClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "CANNOT_REACH_REMOTE_PROCEDURE");
+            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            assert.strictEqual(response.error.message, "MISSING_GRPC_PROTO");
+
+            // Without protoFile
+            grpcClient = AllserverClient({
+                transport: GrpcClientTransport({ uri: "grpc://localhost:50051", connectionDelaySec: 0.1 }),
+            });
+
+            response = await grpcClient.sayHello({ name: "world" });
+            assert.strictEqual(response.success, false);
+            assert.strictEqual(response.code, "GRPC_PROTO_MISSING");
+            assert.strictEqual(response.message, "gRPC client was not yet initialised");
+
+            // Warning! Protected variable change:
+            grpcClient[Symbol.for("AllserverClient")].transport._connectionDelaySec = 10;
 
             const grpcServer = Allserver({
                 procedures,
                 transport: GrpcTransport({
-                    protoFile: __dirname + "/allserver_integration_test.proto",
+                    protoFile,
                     port: 50051,
                     options: {},
                 }),
             });
             await grpcServer.start();
+            await new Promise((r) => setTimeout(r, 1000)); // FFS HTTP2.
 
             await callClientMethods(grpcClient);
 
@@ -162,7 +181,7 @@ describe("integration", () => {
         it("should behave with @grpc/grpc-js", async () => {
             const grpcServer = Allserver({
                 procedures,
-                transport: GrpcTransport({ protoFile: __dirname + "/allserver_integration_test.proto", port: 50051 }),
+                transport: GrpcTransport({ protoFile, port: 50051 }),
             });
             await grpcServer.start();
 
@@ -176,7 +195,8 @@ describe("integration", () => {
             for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
 
             const response = await client.sayHello({ name: "world" });
-            assert.deepStrictEqual(response, { success: true, code: "SUCCESS", message: "Hello world" });
+            const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
+            assert.deepStrictEqual(response, expectedHello);
 
             await grpcServer.stop();
         });

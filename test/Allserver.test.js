@@ -44,21 +44,21 @@ describe("Allserver", () => {
             assert.strictEqual(called, true);
         });
 
-        it("should reply PROCEDURE_NOT_FOUND", async () => {
+        it("should reply ALLSERVER_PROCEDURE_NOT_FOUND", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
                 prepareNotFoundReply() {
                     ctx.result = {
                         success: false,
-                        code: "PROCEDURE_NOT_FOUND",
-                        message: `Procedure ${ctx.procedureName} not found`,
+                        code: "ALLSERVER_PROCEDURE_NOT_FOUND",
+                        message: `Procedure not found: ${ctx.procedureName}`,
                     };
                 },
                 reply(ctx) {
                     assert.deepStrictEqual(ctx.result, {
                         success: false,
-                        code: "PROCEDURE_NOT_FOUND",
-                        message: "Procedure dontExist not found",
+                        code: "ALLSERVER_PROCEDURE_NOT_FOUND",
+                        message: "Procedure not found: dontExist",
                     });
                     replied = true;
                 },
@@ -101,21 +101,21 @@ describe("Allserver", () => {
             assert(replied);
         });
 
-        it("should reply PROCEDURE_ERROR", async () => {
+        it("should reply ALLSERVER_PROCEDURE_ERROR", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
                 prepareProcedureErrorReply(ctx) {
                     ctx.result = {
                         success: false,
-                        code: ctx.error.code || "PROCEDURE_ERROR",
+                        code: ctx.error.code || "ALLSERVER_PROCEDURE_ERROR",
                         message: ctx.error.message,
                     };
                 },
                 reply(ctx) {
                     assert.deepStrictEqual(ctx.result, {
                         success: false,
-                        code: "PROCEDURE_ERROR",
-                        message: "'undefined' in not a function",
+                        code: "ALLSERVER_PROCEDURE_ERROR",
+                        message: "`'undefined' in not a function` in: foo",
                     });
                     replied = true;
                 },
@@ -124,7 +124,7 @@ describe("Allserver", () => {
             const server = Allserver({
                 logger: {
                     error(code, err) {
-                        assert.strictEqual(code, "PROCEDURE_ERROR");
+                        assert.strictEqual(code, "ALLSERVER_PROCEDURE_ERROR");
                         assert.strictEqual(err.message, "'undefined' in not a function");
                         logged = true;
                     },
