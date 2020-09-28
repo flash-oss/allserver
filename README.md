@@ -43,7 +43,7 @@ Problems I had:
 - **Error handling while calling remote procedures are exhausting.**
   - Firstly, I wrap the HTTP call in a `try-catch`. Then, I always had to analise: the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
 - **REST route naming is not clear enough.**
-  - What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
+  - What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, or `findUsers()`, etc.
 - **The HTTP methods are a pain point of any REST API.**
   - Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
 - **The HTTP status codes are never enough and overly confusing.**
@@ -278,7 +278,7 @@ const { success, code, message, user } = await client.updateUser({
 ```
 
 The `AllserverClient` will issue `HTTP POST` request to this URL: `http://localhost:4000/updateUser`.
-The path of the URL is dynamically taken straight from the `client.updateUser` calling code using the ES6 [`Proxy`](https://stackoverflow.com/a/20147219/188475) class. In other words, `AllserverClient` intercept non-existent property access.
+The path of the URL is dynamically taken straight from the `client.updateUser` calling code using the ES6 [`Proxy`](https://stackoverflow.com/a/20147219/188475) class. In other words, `AllserverClient` intercepts non-existent property access.
 
 #### Using any HTTP client (axios in this example)
 

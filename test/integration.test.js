@@ -75,6 +75,8 @@ let { Allserver, HttpTransport, GrpcTransport, LambdaTransport, AllserverClient,
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", function () {
+    this.timeout(5000); // Needed for CI on Windows.
+
     describe("http", () => {
         const fetch = require("node-fetch");
 
