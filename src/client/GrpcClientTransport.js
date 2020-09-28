@@ -9,11 +9,9 @@ module.exports = require("./ClientTransport").compose({
         _protoLoader: require("@grpc/proto-loader"),
         _grpcClientForIntrospection: null,
         _grpcClient: null,
-        _connectionDelaySec: 10,
     },
 
-    init({ protoFile, connectionDelaySec }) {
-        this._connectionDelaySec = Number(connectionDelaySec) || this._connectionDelaySec;
+    init({ protoFile }) {
         this._createIntrospectionClient();
         if (protoFile) {
             this._createMainClient(protoFile);
@@ -43,21 +41,7 @@ module.exports = require("./ClientTransport").compose({
             return new Ctor(this.uri.substr(7), this._grpc.credentials.createInsecure());
         },
 
-        _waitForReady(client) {
-            return new Promise((resolve, reject) =>
-                client.waitForReady(Date.now() + this._connectionDelaySec * 1000, (e) => (e ? reject(e) : resolve()))
-            );
-        },
-
         async introspect() {
-            try {
-                await this._waitForReady(this._grpcClientForIntrospection);
-            } catch (err) {
-                err.noNetToServer = true;
-                this._createIntrospectionClient();
-                throw err;
-            }
-
             let result;
             try {
                 result = await new Promise((resolve, reject) =>
@@ -106,8 +90,6 @@ module.exports = require("./ClientTransport").compose({
                 error.code = "GRPC_PROTO_INVALID";
                 throw error;
             }
-
-            await this._waitForReady(this._grpcClient);
 
             return new Promise((resolve, reject) =>
                 this._grpcClient[procedureName](arg || {}, (err, result) => (err ? reject(err) : resolve(result)))

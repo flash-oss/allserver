@@ -70,8 +70,6 @@ let { Allserver, HttpTransport, GrpcTransport, AllserverClient, GrpcClientTransp
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", function () {
-    this.timeout(10000);
-
     describe("http", () => {
         const fetch = require("node-fetch");
 
@@ -145,7 +143,7 @@ describe("integration", function () {
 
             // With protoFile
             grpcClient = AllserverClient({
-                transport: GrpcClientTransport({ protoFile, uri: "grpc://localhost:50051", connectionDelaySec: 0.1 }),
+                transport: GrpcClientTransport({ protoFile, uri: "grpc://localhost:50051" }),
             });
             response = await grpcClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
@@ -154,16 +152,13 @@ describe("integration", function () {
 
             // Without protoFile
             grpcClient = AllserverClient({
-                transport: GrpcClientTransport({ uri: "grpc://localhost:50051", connectionDelaySec: 0.1 }),
+                transport: GrpcClientTransport({ uri: "grpc://localhost:50051" }),
             });
 
             response = await grpcClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
             assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-
-            // Warning! Protected variable change:
-            grpcClient[Symbol.for("AllserverClient")].transport._connectionDelaySec = 10;
 
             const grpcServer = Allserver({
                 procedures,
@@ -174,7 +169,6 @@ describe("integration", function () {
                 }),
             });
             await grpcServer.start();
-            await new Promise((r) => setTimeout(r, 1000)); // FFS.
 
             await callClientMethods(grpcClient);
 
