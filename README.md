@@ -13,15 +13,19 @@ Should be used for (micro)services where NodeJS is able to run - your computer, 
 This is how your code would look like in all execution environments using any communication protocol out there.
 
 Server side:
+
 ```js
-await require("allserver").Allserver({
-  procedures: {
-    sayHello: ({ name }) => "Hello " + name,
-  },
-}).start();
+await require("allserver")
+  .Allserver({
+    procedures: {
+      sayHello: ({ name }) => "Hello " + name,
+    },
+  })
+  .start();
 ```
 
 Client side:
+
 ```js
 const { AllserverClient } = require("allserver");
 const client = AllserverClient({ uri: process.env.REMOTE_SERVER_URI });
@@ -37,19 +41,19 @@ There are loads of developer video presentations where people rant about how thi
 Problems I had:
 
 - **Error handling while calling remote procedures are exhausting.**
-   - Firstly, I wrap the HTTP call in a `try-catch`. Then, I always had to analise: the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
+  - Firstly, I wrap the HTTP call in a `try-catch`. Then, I always had to analise: the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
 - **REST route naming is not clear enough.**
-   - What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
+  - What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
 - **The HTTP methods are a pain point of any REST API.**
-   - Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
+  - Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
 - **The HTTP status codes are never enough and overly confusing.**
-   - If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the request is perfectly fine. It's the user state (data) is not fine.
+  - If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the request is perfectly fine. It's the user state (data) is not fine.
 - **The GraphQL has great DX and tooling, but it's not a good fit for microservices.**
-   - It adds too much complexity and is performance unfriendly (slow).
+  - It adds too much complexity and is performance unfriendly (slow).
 - **Performance scaling**
-   - When a performance scaling was needed I had to rewrite an entire service and client source code in multiple projects to a more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
+  - When a performance scaling was needed I had to rewrite an entire service and client source code in multiple projects to a more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
 - **HTTP monitoring tools show business errors as alarms.**
-   - I was trying to check if a user with email `bla@example.com` exists. REST reply is HTTP `404`. Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors with ease.
+  - I was trying to check if a user with email `bla@example.com` exists. REST reply is HTTP `404`. Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors with ease.
 
 When calling a remote procedure I want something which:
 
@@ -163,6 +167,7 @@ const procedures = {
         message: `User ID ${id} not found`,
       };
     }
+
     if (user.isReadOnly()) {
       return {
         success: false,
@@ -170,6 +175,7 @@ const procedures = {
         message: `User ${id} can't be modified`,
       };
     }
+
     if (user.firstName === firstName && user.lastName === lastName) {
       return {
         success: true, // NOTE! We return TRUE here,
@@ -211,9 +217,37 @@ Here is the same server but more explicit:
 
 ```js
 const { Allserver, HttpTransport } = require("allserver");
+
 Allserver({
   procedures,
   transport: HttpTransport({ port: process.env.PORT }),
+}).start();
+```
+
+### HTTP server in AWS Lambda
+
+Doesn't require a dedicated client transport. Use the HTTP client below.
+
+NB: not yet tested in production.
+
+```js
+const { Allserver, LambdaTransport } = require("allserver");
+
+exports.handler = Allserver({
+  procedures,
+  transport: LambdaTransport(),
+}).start();
+```
+
+Or, if you want each individual procedure to be the Lambda handler, pass `mapProceduresToExports: true`.
+
+```js
+const { Allserver, LambdaTransport } = require("allserver");
+
+// Note! No `handler` here.
+exports = Allserver({
+  procedures,
+  transport: LambdaTransport({ mapProceduresToExports: true }),
 }).start();
 ```
 
@@ -273,7 +307,7 @@ const response = await axios.get("updateUser", {
 });
 ```
 
-Yeah. This is a mutating call using `HTTP GET`. That's by design, and I love it. Allserver is an RPC server, not a website server! So we are free to do whatever we want here. 
+Yeah. This is a mutating call using `HTTP GET`. That's by design, and I love it. Allserver is an RPC server, not a website server! So we are free to do whatever we want here.
 
 ### HTTP limitations
 
@@ -405,7 +439,7 @@ In case of internal errors the server would dump the full stack trace to the std
 
 ```js
 const allserver = Allserver({ procedures, logger: new MyShinyLogger() });
-// or 
+// or
 Allserver = Allserver.defaults({ logger: new MyShinyLogger() });
 const allserver = Allserver({ procedures });
 ```
@@ -434,5 +468,6 @@ Server side you do it yourself. Via the `before` pre-middleware.
 Allserver does not (yet) standardise how the "bad auth" replies should look and feel. That's a discussion we need to take. Refer to the **Core principles** above for insights.
 
 Client side
- - AllserverClient - not yet possible, TODO.
- - Your client module - do it yourself.
+
+- AllserverClient - not yet possible, TODO.
+- Your client module - do it yourself.

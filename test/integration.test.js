@@ -64,9 +64,14 @@ async function callClientMethods(client) {
         code: "ALLSERVER_PROCEDURE_ERROR",
         message: "`Cannot read property 'me' of undefined` in: throws",
     });
+
+    response = await client.unexist({});
+    assert.strictEqual(response.success, false);
+    assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
+    assert.strictEqual(response.message, "Procedure not found: unexist");
 }
 
-let { Allserver, HttpTransport, GrpcTransport, AllserverClient, GrpcClientTransport } = require("..");
+let { Allserver, HttpTransport, GrpcTransport, LambdaTransport, AllserverClient, GrpcClientTransport } = require("..");
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", function () {
@@ -196,6 +201,26 @@ describe("integration", function () {
             assert.deepStrictEqual(response, expectedHello);
 
             await grpcServer.stop();
+        });
+    });
+
+    describe("lambda", () => {
+        const LocalLambdaClientTransport = require("./LocalLambdaClientTransport");
+
+        it("should behave with AllserverClient", async () => {
+            const lambdaServer = Allserver({
+                procedures,
+                transport: LambdaTransport(),
+            });
+
+            const lambdaClient = AllserverClient({
+                transport: LocalLambdaClientTransport({
+                    uri: "http://local/prefix",
+                    lambdaHandler: lambdaServer.start(),
+                }),
+            });
+
+            await callClientMethods(lambdaClient);
         });
     });
 });

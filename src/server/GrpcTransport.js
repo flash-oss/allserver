@@ -96,7 +96,7 @@ module.exports = require("stampit")({
             return this.getProcedureName(ctx) === "introspect";
         },
 
-        prepareNotFoundReply(ctx) {},
+        prepareNotFoundReply(/* ctx */) {},
         async prepareIntrospectionReply(ctx) {
             if (!this.protoFileContents) {
                 this.protoFileContents = this._fs.readFileSync(this.protoFile, "utf8");

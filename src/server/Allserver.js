@@ -1,6 +1,6 @@
 const assert = require("assert");
 
-const { isObject, isString, isBoolean, isFunction } = require("../util");
+const { isObject, isBoolean, isFunction } = require("../util");
 
 module.exports = require("stampit")({
     name: "Allserver",

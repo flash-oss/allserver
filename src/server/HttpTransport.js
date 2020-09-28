@@ -13,17 +13,6 @@ module.exports = require("stampit")({
     },
 
     methods: {
-        _enrichContext(ctx) {
-            ctx.http.url = parseUrl(ctx.http.req.url);
-
-            ctx.http.query = {};
-            if (ctx.http.url.query) {
-                for (const [key, value] of new URLSearchParams(ctx.http.url.query).entries()) {
-                    ctx.http.query[key] = value;
-                }
-            }
-        },
-
         async _deserializeRequest(ctx) {
             const bodyBuffer = await this._micro.buffer(ctx.http.req);
             let arg = ctx.http.query;
@@ -51,8 +40,15 @@ module.exports = require("stampit")({
 
         startServer(defaultCtx) {
             this.server = this._micro(async (req, res) => {
-                const ctx = { ...defaultCtx, http: { req, res, send: this._micro.send } };
-                this._enrichContext(ctx);
+                const ctx = { ...defaultCtx, http: { req, res, send: this._micro.send, url: parseUrl(req.url) } };
+
+                ctx.http.query = {};
+                if (ctx.http.url.query) {
+                    for (const [key, value] of new URLSearchParams(ctx.http.url.query).entries()) {
+                        ctx.http.query[key] = value;
+                    }
+                }
+
                 await this._handleRequest(ctx);
             });
             return new Promise((r) => this.server.listen(this.port, r));
@@ -72,7 +68,7 @@ module.exports = require("stampit")({
         prepareNotFoundReply(ctx) {
             ctx.http.statusCode = 404;
         },
-        prepareIntrospectionReply(ctx) {},
+        prepareIntrospectionReply(/* ctx */) {},
 
         reply(ctx) {
             if (!ctx.http.statusCode) ctx.http.statusCode = 200;

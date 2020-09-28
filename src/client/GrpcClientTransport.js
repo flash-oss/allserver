@@ -86,8 +86,8 @@ module.exports = require("./ClientTransport").compose({
             }
 
             if (!this._grpcClient[procedureName]) {
-                const error = new Error(`gRPC client proto file does not have method: ${procedureName}`);
-                error.code = "GRPC_PROTO_INVALID";
+                const error = new Error(`Procedure not found: ${procedureName}`);
+                error.code = "ALLSERVER_PROCEDURE_NOT_FOUND";
                 throw error;
             }
 

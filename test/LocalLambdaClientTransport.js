@@ -1,12 +1,16 @@
-module.exports = require("./ClientTransport").compose({
-    name: "HttpClientTransport",
+module.exports = require("../src/client/ClientTransport").compose({
+    name: "LocalLambdaClientTransport",
 
     props: {
-        _fetch: require("node-fetch"),
+        _lambdaLocal: require("lambda-local"),
+        _lambdaHandler: null,
     },
 
-    init() {
+    init({ lambdaHandler }) {
         if (!this.uri.endsWith("/")) this.uri += "/";
+        this._lambdaHandler = lambdaHandler || this._lambdaHandler;
+
+        this._lambdaLocal.setLogger({ log() {}, transports: [] }); // silence logs
     },
 
     methods: {
@@ -15,17 +19,16 @@ module.exports = require("./ClientTransport").compose({
         },
 
         async call(procedureName = "", arg) {
-            let response;
+            let response = await this._lambdaLocal.execute({
+                event: {
+                    body: arg && JSON.stringify(arg),
+                    path: "/" + procedureName,
+                },
+                lambdaFunc: { handler: this._lambdaHandler },
+            });
 
-            try {
-                response = await this._fetch(this.uri + procedureName, { method: "POST", body: JSON.stringify(arg) });
-            } catch (err) {
-                if (err.code === "ECONNREFUSED") err.noNetToServer = true;
-                throw err;
-            }
-
-            if (!response.ok) {
-                const text = await response.text().catch(() => "RPC_RESPONSE_IS_NOT_TEXT");
+            if (response.statusCode !== 200) {
+                const text = response.body || "";
                 let error;
                 if (text[0] === "{" && text[text.length - 1] === "}") {
                     try {
@@ -38,12 +41,12 @@ module.exports = require("./ClientTransport").compose({
                     }
                 }
                 if (!error) error = new Error(text);
-                error.status = response.status;
+                error.status = response.statusCode;
                 throw error;
             }
 
             try {
-                return await response.json();
+                return JSON.parse(response.body);
             } catch (err) {
                 err.code = "RPC_RESPONSE_IS_NOT_JSON";
                 throw err;
