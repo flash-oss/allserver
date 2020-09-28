@@ -36,16 +36,22 @@ There are loads of developer video presentations where people rant about how thi
 
 Problems I had:
 
-- The HTTP status codes were never enough as error explanation. Firstly, I wrap the HTTP call in a `try-catch`. Then, I always had to analise: the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
-- I got tired of wrapping every RPC call with a `try-catch`. Too much boilerplate for such a ubiquitous operation. 
-- REST route naming is not clear enough. What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
-- The HTTP methods are a pain point of any REST API. Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
-- The HTTP status codes are never enough and overly confusing. If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the requests is perfectly fine. It's the user state (data) is not fine.
-- The GraphQL has great DX and tooling, but it's not a good fit for microservices. It adds too much complexity and is performance unfriendly (slow).
-- When a performance scaling was needed I had to rewrite an entire service and client source code in multiple projects to a more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
-- HTTP monitoring tools were alarming errors when I was trying to check if a user with email `bla@example.com` exists (REST reply HTTP 404). Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors.
+- **Error handling while calling remote procedures are exhausting.**
+   - Firstly, I wrap the HTTP call in a `try-catch`. Then, I always had to analise: the status code, then detect the response body content type - text or json, then analyse the body for the actual error. I got very much annoyed by this repetitive boilerplate code.
+- **REST route naming is not clear enough.**
+   - What is this route for - `/user`? You need to read the docs! I want it to be as simple and clear as calling a JS function/method - `createUser()`, or `updateUser()`, or `getUser()`, or `removeUser()`, of `findUsers()`, etc.
+- **The HTTP methods are a pain point of any REST API.**
+   - Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
+- **The HTTP status codes are never enough and overly confusing.**
+   - If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the request is perfectly fine. It's the user state (data) is not fine.
+- **The GraphQL has great DX and tooling, but it's not a good fit for microservices.**
+   - It adds too much complexity and is performance unfriendly (slow).
+- **Performance scaling**
+   - When a performance scaling was needed I had to rewrite an entire service and client source code in multiple projects to a more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
+- **HTTP monitoring tools show business errors as alarms.**
+   - I was trying to check if a user with email `bla@example.com` exists. REST reply is HTTP `404`. Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors with ease.
 
-I wanted something which:
+When calling a remote procedure I want something which:
 
 - Does not throw exceptions client-side no matter what.
 - Can be easily mapped to any language, any protocol. Especially to upstream GraphQL mutations.
@@ -53,17 +59,17 @@ I wanted something which:
 - Allows me to test gRPC server from my browser/Postman/curl (via HTTP!) by a simple one line config change.
 - Does not bring tons of npm dependencies with it.
 
-Ideas are taken from multiple places.
-
-- [slack.com HTTP RPC API](https://api.slack.com/web) - always return object of a same shape - `{ok:Boolean, error:String}`.
-- [GoLang error handling](https://blog.golang.org/error-handling-and-go) - always return two things from a function call - the result and the error.
-- [GraphQL introspection](https://graphql.org/learn/introspection/) - introspection API out of the box by default.
-
 Also, the main driving force was my vast experience splitting monolith servers onto (micro)services. Here is how I do it with much success.
 
 - Firstly, I refactor a function to return object of the `{success,code,message,...}` shape, and to never throw.
 - Then, I move the function over to a microservice.
 - Done.
+
+Ideas are taken from multiple places.
+
+- [slack.com HTTP RPC API](https://api.slack.com/web) - always return object of a same shape - `{ok:Boolean, error:String}`.
+- [GoLang error handling](https://blog.golang.org/error-handling-and-go) - always return two things from a function call - the result and the error.
+- [GraphQL introspection](https://graphql.org/learn/introspection/) - introspection API out of the box by default.
 
 ## Core principles
 
@@ -86,8 +92,7 @@ Also, the main driving force was my vast experience splitting monolith servers o
    - Same for other protocols.
 1. **Protocol-level things must NOT be used for business-level logic (i.e. no REST)**
    - This makes your (micro)service protocol agnostic.
-   - The HTTP status codes must be used for protocol-level errors only.
-   - Caller should expect the object of the same shape no matter what (configurable though).
+   - E.g. the HTTP status codes must be used for protocol-level errors only.
 1. **All procedures must accept single argument - JavaScript options object**
    - This makes your (micro)service protocol agnostic.
 1. **Procedures introspection (aka programmatic discovery) should work out of the box**
@@ -268,7 +273,7 @@ const response = await axios.get("updateUser", {
 });
 ```
 
-Yeah. This is a mutating call using `HTTP GET`. That's by design, and I love it.
+Yeah. This is a mutating call using `HTTP GET`. That's by design, and I love it. Allserver is an RPC server, not a website server! So we are free to do whatever we want here. 
 
 ### HTTP limitations
 
@@ -407,7 +412,7 @@ const allserver = Allserver({ procedures });
 
 ### Can I add a middleware?
 
-You can add only **one** pre-middleware, but also **one** post-middleware.
+You can add only **one** pre-middleware, as well as **one** post-middleware.
 
 ```js
 const allserver = Allserver({

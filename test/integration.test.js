@@ -159,8 +159,8 @@ describe("integration", function () {
 
             response = await grpcClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "GRPC_PROTO_MISSING");
-            assert.strictEqual(response.message, "gRPC client was not yet initialised");
+            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
+            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
 
             // Warning! Protected variable change:
             grpcClient[Symbol.for("AllserverClient")].transport._connectionDelaySec = 10;
@@ -174,7 +174,7 @@ describe("integration", function () {
                 }),
             });
             await grpcServer.start();
-            await new Promise((r) => setTimeout(r, 1000)); // FFS HTTP2.
+            await new Promise((r) => setTimeout(r, 1000)); // FFS.
 
             await callClientMethods(grpcClient);
 

@@ -22,6 +22,7 @@ module.exports = require("./ClientTransport").compose({
 
     methods: {
         _createIntrospectionClient() {
+            if (this._grpcClientForIntrospection) this._grpcClientForIntrospection.close();
             this._grpcClientForIntrospection = this._createClientFromCtor(
                 this._grpc.loadPackageDefinition(this._protoLoader.loadSync(__dirname + "/../../mandatory.proto"))
                     .Allserver
@@ -34,6 +35,7 @@ module.exports = require("./ClientTransport").compose({
             const Ctor = Object.entries(this._grpc.loadPackageDefinition(pd)).find(
                 ([k, v]) => isFunction(v) && k !== "Allserver"
             )[1];
+            if (this._grpcClient) this._grpcClient.close();
             this._grpcClient = this._createClientFromCtor(Ctor && Ctor.service);
         },
 
@@ -48,11 +50,16 @@ module.exports = require("./ClientTransport").compose({
         },
 
         async introspect() {
+            try {
+                await this._waitForReady(this._grpcClientForIntrospection);
+            } catch (err) {
+                err.noNetToServer = true;
+                this._createIntrospectionClient();
+                throw err;
+            }
+
             let result;
             try {
-                // Introspection is the first call usually. The server might be unavailable. Let's not wait for too long.
-                await this._waitForReady(this._grpcClientForIntrospection).catch((err) => {});
-
                 result = await new Promise((resolve, reject) =>
                     this._grpcClientForIntrospection.introspect({}, (err, result) =>
                         err ? reject(err) : resolve(result)
@@ -60,6 +67,7 @@ module.exports = require("./ClientTransport").compose({
                 );
             } catch (err) {
                 if (err.code === 14) {
+                    err.noNetToServer = true;
                     // No connection established
                     // There is a bug in @grpc/grpc-js. https://github.com/grpc/grpc-node/issues/1591
                     // It does not try to connect second time.

@@ -60,9 +60,20 @@ function proxyWrappingInitialiser() {
                             // The auto introspection worked as expected. It added a method to the client object.
                             return Reflect.get(allserverClient, procedureName, thisContext)(...args);
                         } else {
-                            // The method `name` is not present in the introspection, so let's call server side.
-                            // 🤞
-                            return allserverClient.call(procedureName, ...args);
+                            if (introspectionResult && introspectionResult.noNetToServer) {
+                                return {
+                                    success: false,
+                                    code: "ALLSERVER_PROCEDURE_UNREACHABLE",
+                                    message: `Couldn't reach remote procedure: ${procedureName}`,
+                                    noNetToServer: introspectionResult.noNetToServer,
+                                    error: introspectionResult.error,
+                                };
+                            } else {
+                                // Server is still reachable. It's just introspection didn't work.
+                                // The method `name` is not present in the introspection, so let's call server side.
+                                // 🤞
+                                return allserverClient.call(procedureName, ...args);
+                            }
                         }
                     };
                 }
@@ -129,6 +140,7 @@ module.exports = require("stampit")({
                 success: false,
                 code: "INTROSPECTION_FAILED",
                 message: `Couldn't introspect ${this[p].transport.uri}`,
+                noNetToServer: Boolean(err.noNetToServer),
                 error: err,
             }));
         },
@@ -139,7 +151,7 @@ module.exports = require("stampit")({
                 promise = promise.catch((err) => {
                     let code = err.code;
                     let message = err.message;
-                    if (!err.code || err.code === "ALLSERVER_PROCEDURE_UNREACHABLE") {
+                    if (!err.code || err.noNetToServer) {
                         code = "ALLSERVER_PROCEDURE_UNREACHABLE";
                         message = `Couldn't reach remote procedure: ${procedureName}`;
                     }

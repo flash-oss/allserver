@@ -20,7 +20,7 @@ module.exports = require("./ClientTransport").compose({
             try {
                 response = await this._fetch(this.uri + procedureName, { method: "POST", body: JSON.stringify(arg) });
             } catch (err) {
-                if (err.code === "ECONNREFUSED") err.code = "ALLSERVER_PROCEDURE_UNREACHABLE";
+                if (err.code === "ECONNREFUSED") err.noNetToServer = true;
                 throw err;
             }
 
