@@ -51,11 +51,9 @@ module.exports = require("./ClientTransport").compose({
                 );
             } catch (err) {
                 if (err.code === 14) {
+                    // No connection established.
                     err.noNetToServer = true;
-                    // No connection established
-                    // There is a bug in @grpc/grpc-js. https://github.com/grpc/grpc-node/issues/1591
-                    // It does not try to connect second time.
-                    // Recreating the introspection client fixes it. But maaate. I'm so so sad!
+                    // Recreating the introspection client fixes a bug.
                     this._createIntrospectionClient();
                 }
                 throw err;

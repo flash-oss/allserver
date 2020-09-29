@@ -15,24 +15,30 @@ This is how your code would look like in all execution environments using any co
 Server side:
 
 ```js
-await require("allserver")
-  .Allserver({
-    procedures: {
-      sayHello: ({ name }) => "Hello " + name,
-    },
-  })
-  .start();
+const procedures = {
+  sayHello: ({ name }) => "Hello " + name,
+};
+require("allserver").Allserver({ procedures }).start();
 ```
 
 Client side:
 
 ```js
-const { AllserverClient } = require("allserver");
+const AllserverClient = require("allserver/Client");
 const client = AllserverClient({ uri: process.env.REMOTE_SERVER_URI });
+
 const { success, code, sayHello } = await client.sayHello({ name: "Joe" });
-if (success) console.log(sayHello); // "Hello Joe"
-else console.error(code); // something like "ALLSERVER_PROCEDURE_UNREACHABLE"
+
+if (success) {
+  // "Hello Joe"
+  console.log(sayHello);
+} else {
+  // something like "ALLSERVER_PROCEDURE_UNREACHABLE"
+  console.error(code);
+}
 ```
+
+Or use your own client library, e.g. `fetch` for HTTP or `@grpc/grpc-js` for gRPC.
 
 ## Why Allserver exists?
 

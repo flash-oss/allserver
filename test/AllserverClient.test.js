@@ -14,6 +14,11 @@ const AllserverClient = require("..").AllserverClient.deepConf({
 });
 
 describe("AllserverClient", () => {
+    afterEach(() => {
+        // clean introspection cache
+        AllserverClient.compose.methods._introspectionCache = new Map();
+    });
+
     describe("#init", () => {
         it("should throw if no uri and no transport", () => {
             assert.throws(() => AllserverClient(), /uri/);
@@ -99,6 +104,35 @@ describe("AllserverClient", () => {
         it("should do dynamic RPC based on object property names", async () => {
             const client = AllserverClient({ autoIntrospect: false, uri: "void://bla" });
             await client.thisMethodDoesNotExist();
+        });
+    });
+
+    describe("nameMapper", () => {
+        it("should map and filter names", async () => {
+            "get-rates".replace(/(-\w)/g, (k) => k[1].toUpperCase());
+
+            const MockedTransport = VoidClientTransport.methods({
+                async introspect() {
+                    return {
+                        success: true,
+                        code: "OK",
+                        message: "Ok",
+                        procedures: JSON.stringify({ "get-rates": "function" }),
+                    };
+                },
+                async call(procedureName, arg) {
+                    assert.strictEqual(procedureName, "foo");
+                    assert.deepStrictEqual(arg, { a: 1 });
+                    return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
+                },
+            });
+
+            const nameMapper = (name) => name.replace(/(-\w)/g, (k) => k[1].toUpperCase());
+            const client = AllserverClient({ transport: MockedTransport(), nameMapper });
+            assert.strictEqual(Reflect.has(client, "getRates"), false); // dont have it yet
+            const result = await client.foo({ a: 1 });
+            assert.strictEqual(Reflect.has(client, "getRates"), true); // have it now!
+            assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
         });
     });
 

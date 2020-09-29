@@ -9,8 +9,10 @@ function addProceduresToObject(allserverClient, procedures) {
     } catch (err) {
         throw new Error("Malformed introspection");
     }
-    for (const [procedureName, type] of Object.entries(procedures || {})) {
-        if (type !== "function" || allserverClient[procedureName]) continue;
+    const nameMapper = allserverClient[p].nameMapper || ((a) => a);
+    for (let [procedureName, type] of Object.entries(procedures || {})) {
+        procedureName = nameMapper(procedureName);
+        if (!procedureName || type !== "function" || allserverClient[procedureName]) continue;
         allserverClient[procedureName] = (...args) => allserverClient.call(procedureName, ...args);
     }
 }
@@ -34,7 +36,7 @@ function proxyWrappingInitialiser() {
                 // Let's see if we already introspected that server.
                 const introspectionResult = introspectionCache.get(uri);
                 if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
-                    // Yeah. We already introspected it. Note! The introspection might was unsuccessful.
+                    // Yeah. We already successfully introspected it.
                     addProceduresToObject(allserverClient, introspectionResult.procedures);
                     if (procedureName in allserverClient) {
                         // The PREVIOUS auto introspection worked as expected. It added a method to the client object.
@@ -101,6 +103,8 @@ module.exports = require("stampit")({
             dynamicMethods: true,
             // Try automatically fetch and assign methods to this client object.
             autoIntrospect: true,
+            // Map/filter procedure names from server names to something else.
+            nameMapper: null,
         },
     },
 
@@ -111,10 +115,11 @@ module.exports = require("stampit")({
         ],
     },
 
-    init({ uri, transport, neverThrow, dynamicMethods, autoIntrospect }, { stamp }) {
+    init({ uri, transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper }, { stamp }) {
         this[p].neverThrow = neverThrow != null ? neverThrow : this[p].neverThrow;
         this[p].dynamicMethods = dynamicMethods != null ? dynamicMethods : this[p].dynamicMethods;
         this[p].autoIntrospect = autoIntrospect != null ? autoIntrospect : this[p].autoIntrospect;
+        this[p].nameMapper = nameMapper != null ? nameMapper : this[p].nameMapper;
 
         this[p].transport = transport || this[p].transport;
         if (!this[p].transport) {

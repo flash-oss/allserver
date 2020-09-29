@@ -2,7 +2,7 @@ module.exports = require("./ClientTransport").compose({
     name: "HttpClientTransport",
 
     props: {
-        _fetch: require("node-fetch"),
+        _fetch: (typeof window !== "undefined" && window.fetch) || require("node-fetch"),
     },
 
     init() {
