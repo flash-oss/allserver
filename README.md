@@ -356,7 +356,7 @@ const { AllserverClient } = require("allserver");
 // or
 const AllserverClient = require("allserver/Client");
 
-const client = AllserverClient({ uri: "gprs://localhost:50051" });
+const client = AllserverClient({ uri: "grpc://localhost:50051" });
 
 const { success, code, message, user } = await client.updateUser({
   id: "123412341234123412341234",
@@ -366,6 +366,28 @@ const { success, code, message, user } = await client.updateUser({
 ```
 
 The `protoFile` is automatically taken from the server side via the `introspect()` call.
+
+##### Providing proto file and/or credentials yourself
+
+```js
+const { AllserverClient, GrpcClientTransport } = require("allserver");
+// or
+const AllserverClient = require("allserver/Client");
+
+const client = AllserverClient({
+  transport: GrpcClientTransport({
+    uri: "grpc://localhost:50051",
+    protoFile: __dirname + "/my-proto-file.proto",
+    credentials: require("@grpc/grpc-js").credentials.createSsl(/* ... */),
+  }),
+});
+
+const { success, code, message, user } = await client.updateUser({
+  id: "123412341234123412341234",
+  firstName: "Fred",
+  lastName: "Flinstone",
+});
+```
 
 #### Using any gPRS client (official module in this example)
 
@@ -475,23 +497,79 @@ const allserver = Allserver({
 
 ### How to add Auth?
 
-Server side you do it yourself via the `before` pre-middleware.
+#### Server side
 
-```js
-const allserver = Allserver({
-  procedures,
-  before(ctx) {
-      console.log(ctx.procedureName, ctx.arg);
-  },
-  after(ctx) {
-      console.log(ctx.procedureName, ctx.arg);
-      console.log(ctx.result, ctx.error);
-  },
-});
-```
+Server side you do it yourself via the `before` pre-middleware. See above.
 
 Allserver does not (yet) standardise how the "bad auth" replies should look and feel. That's a discussion we need to take. Refer to the **Core principles** above for insights.
 
-Client side you do it yourself via client transport middleware.
+#### Client side
 
+This largely depends on the protocol and controlled by the so called "ClientTransport".
 
+##### HTTP
+
+```js
+const { AllserverClient, HttpClientTransport } = require("allserver");
+
+const client = AllserverClient({
+  transport: HttpClientTransport({
+    uri: "http://my-server:4000",
+    headers: { authorization: "Basic my-token" },
+  }),
+});
+```
+
+##### gRPC
+
+```js
+const { AllserverClient, GrpcClientTransport } = require("allserver");
+
+const client = AllserverClient({
+  transport: GrpcClientTransport({
+    uri: "grpc://my-server:50051",
+    creadentials: require("@grpc/grpc-js").credentials.createSsl(/* ... */),
+  }),
+});
+```
+
+##### My authorisation is not supported. What should I do?
+
+If something more sophisticated is needed - the "Client Transport" can have `before` and `after` middlewares.
+
+```js
+const { AllserverClient, HttpClientTransport } = require("allserver");
+
+const client = AllserverClient({
+  transport: HttpClientTransport({
+    uri: "http://my-server:4000",
+    before(ctx) {
+      console.log(ctx.procedureName, ctx.arg);
+      ctx.http.mode = "cors";
+      ctx.http.credentials = "include";
+      ctx.http.headers.authorization = "Basic my-token";
+    },
+    after(ctx) {
+      if (ctx.error) console.error(ctx.error) else console.log(ctx.result);
+    },
+  }),
+});
+```
+
+Alternatively, you can "inherit" transports:
+
+```js
+const { AllserverClient, HttpClientTransport } = require("allserver");
+
+const MyHttpTransportWithAuth = HttpClientTransport.methods({
+  before(ctx) {
+    ctx.http.mode = "cors";
+    ctx.http.credentials = "include";
+    ctx.http.headers.authorization = "Basic my-token";
+  },
+});
+
+const client = AllserverClient({
+  transport: MyHttpTransportWithAuth({ uri: "http://my-server:4000" }),
+});
+```

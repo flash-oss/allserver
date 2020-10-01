@@ -1,15 +1,16 @@
 const assert = require("assert");
 
-const VoidClientTransport = require("../src/client/ClientTransport").compose({
+const VoidClientTransport = require("../../src/client/ClientTransport").compose({
     props: {
         uri: "void://localhost",
     },
     methods: {
         introspect() {},
         call() {},
+        createCallContext: (defaultCtx) => ({ ...defaultCtx, void: {} }),
     },
 });
-const AllserverClient = require("..").AllserverClient.deepConf({
+const AllserverClient = require("../../src").AllserverClient.deepConf({
     transports: [{ schema: "void", Transport: VoidClientTransport }], // added one more known schema
 });
 const p = Symbol.for("AllserverClient");
@@ -53,7 +54,7 @@ describe("AllserverClient", () => {
 
             const result = await AllserverClient({ transport: MockedTransport() }).introspect();
             assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "INTROSPECTION_FAILED");
+            assert.strictEqual(result.code, "ALLSERVER_INTROSPECTION_FAILED");
             assert.strictEqual(result.message, "Couldn't introspect void://localhost");
             assert.strictEqual(result.error.message, "Cannot reach server");
         });
@@ -188,7 +189,7 @@ describe("AllserverClient", () => {
                         procedures: JSON.stringify({ "get-rates": "function", "hide-me": "function" }),
                     };
                 },
-                async call(procedureName, arg) {
+                async call({ procedureName, arg }) {
                     assert.strictEqual(procedureName, "getRates");
                     assert.deepStrictEqual(arg, { a: 1 });
                     return { success: true, code: "CALLED", message: "A is good", b: 42 };
@@ -216,7 +217,7 @@ describe("AllserverClient", () => {
                             procedures: JSON.stringify({ getRates: "function" }),
                         };
                     },
-                    async call(procedureName, arg) {
+                    async call({ procedureName, arg }) {
                         assert.strictEqual(procedureName, "getRates");
                         assert.deepStrictEqual(arg, { a: 1 });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
@@ -298,7 +299,7 @@ describe("AllserverClient", () => {
                             procedures: JSON.stringify({ getRates: "function" }),
                         };
                     },
-                    async call(procedureName, arg) {
+                    async call({ procedureName, arg }) {
                         assert.strictEqual(procedureName, "getRates");
                         assert.deepStrictEqual(arg, { a: 1 });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
@@ -412,7 +413,7 @@ describe("AllserverClient", () => {
                         procedures: JSON.stringify({ foo: "function" }),
                     };
                 },
-                async call(procedureName, arg) {
+                async call({ procedureName, arg }) {
                     assert.strictEqual(procedureName, "foo");
                     assert.deepStrictEqual(arg, { a: 1 });
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
@@ -431,7 +432,7 @@ describe("AllserverClient", () => {
                 introspect() {
                     return Promise.reject(new Error("Couldn't introspect"));
                 },
-                call(procedureName, arg) {
+                call({ procedureName, arg }) {
                     assert.strictEqual(procedureName, "foo");
                     assert.deepStrictEqual(arg, { a: 1 });
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };

@@ -161,7 +161,7 @@ module.exports = require("stampit")({
             // * couldn't connect to the remote host.
             return Promise.resolve(this[p].transport.introspect()).catch((err) => ({
                 success: false,
-                code: "INTROSPECTION_FAILED",
+                code: "ALLSERVER_INTROSPECTION_FAILED",
                 message: `Couldn't introspect ${this[p].transport.uri}`,
                 noNetToServer: Boolean(err.noNetToServer),
                 error: err,
@@ -169,8 +169,8 @@ module.exports = require("stampit")({
         },
 
         async call(procedureName, arg) {
-            const ctx = { procedureName, arg, client: this };
             const transport = this[p].transport;
+            const ctx = transport.createCallContext({ procedureName, arg, client: this });
             if (isFunction(transport.before)) {
                 try {
                     const result = await transport.before(ctx);
@@ -189,7 +189,7 @@ module.exports = require("stampit")({
 
             if (!ctx.result) {
                 try {
-                    ctx.result = await transport.call(ctx.procedureName, ctx.arg);
+                    ctx.result = await transport.call(ctx);
                 } catch (err) {
                     if (!this[p].neverThrow) throw err;
 

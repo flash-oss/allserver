@@ -44,7 +44,7 @@ async function callClientMethods(client) {
     // Introspection should not work now
     response = await client.introspect();
     assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "INTROSPECTION_FAILED");
+    assert.strictEqual(response.code, "ALLSERVER_INTROSPECTION_FAILED");
     // Turn on introspection
     response = await client.introspection({ enable: true });
     assert.strictEqual(response.success, true);
@@ -71,7 +71,14 @@ async function callClientMethods(client) {
     assert.strictEqual(response.message, "Procedure not found: unexist");
 }
 
-let { Allserver, HttpTransport, GrpcTransport, LambdaTransport, AllserverClient, GrpcClientTransport } = require("..");
+let {
+    Allserver,
+    HttpTransport,
+    GrpcTransport,
+    LambdaTransport,
+    AllserverClient,
+    GrpcClientTransport,
+} = require("../../src");
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", function () {

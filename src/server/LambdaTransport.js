@@ -29,7 +29,7 @@ module.exports = require("stampit")({
             } else {
                 // HTTP protocol request was malformed (not expected structure).
                 // We are not going to process it.
-                ctx.result = { success: false, code: "BAD_REQUEST", message: "Can't parse JSON" };
+                ctx.result = { success: false, code: "ALLSERVER_BAD_REQUEST", message: "Can't parse JSON" };
                 ctx.lambda.statusCode = 400;
                 this.reply(ctx);
             }

@@ -9,9 +9,11 @@ module.exports = require("./ClientTransport").compose({
         _protoLoader: require("@grpc/proto-loader"),
         _grpcClientForIntrospection: null,
         _grpcClient: null,
+        _credentials: null,
     },
 
-    init({ protoFile }) {
+    init({ protoFile, credentials }) {
+        this._credentials = credentials || this._credentials || this._grpc.credentials.createInsecure();
         this._createIntrospectionClient();
         if (protoFile) {
             this._createMainClient(protoFile);
@@ -38,7 +40,7 @@ module.exports = require("./ClientTransport").compose({
         },
 
         _createClientFromCtor(Ctor) {
-            return new Ctor(this.uri.substr(7), this._grpc.credentials.createInsecure());
+            return new Ctor(this.uri.substr(7), this._credentials);
         },
 
         async introspect() {
@@ -76,10 +78,10 @@ module.exports = require("./ClientTransport").compose({
             return result;
         },
 
-        async call(procedureName = "", arg) {
+        async call({ procedureName = "", arg }) {
             if (!this._grpcClient) {
                 const error = new Error("gRPC client was not yet initialised");
-                error.code = "GRPC_PROTO_MISSING";
+                error.code = "ALLSERVER_GRPC_PROTO_MISSING";
                 throw error;
             }
 
@@ -92,6 +94,10 @@ module.exports = require("./ClientTransport").compose({
             return new Promise((resolve, reject) =>
                 this._grpcClient[procedureName](arg || {}, (err, result) => (err ? reject(err) : resolve(result)))
             );
+        },
+
+        createCallContext(defaultCtx) {
+            return { ...defaultCtx, grpc: {} };
         },
     },
 });

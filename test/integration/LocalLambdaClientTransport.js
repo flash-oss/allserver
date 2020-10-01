@@ -1,4 +1,4 @@
-module.exports = require("../src/client/ClientTransport").compose({
+module.exports = require("../../src/client/ClientTransport").compose({
     name: "LocalLambdaClientTransport",
 
     props: {
@@ -15,10 +15,10 @@ module.exports = require("../src/client/ClientTransport").compose({
 
     methods: {
         async introspect() {
-            return this.call();
+            return this.call(this.createCallContext({ procedureName: "" }));
         },
 
-        async call(procedureName = "", arg) {
+        async call({ procedureName = "", arg }) {
             let response = await this._lambdaLocal.execute({
                 event: {
                     body: arg && JSON.stringify(arg),
@@ -51,6 +51,10 @@ module.exports = require("../src/client/ClientTransport").compose({
                 err.code = "RPC_RESPONSE_IS_NOT_JSON";
                 throw err;
             }
+        },
+
+        createCallContext(defaultCtx) {
+            return { ...defaultCtx, lambda: {} };
         },
     },
 });

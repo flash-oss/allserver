@@ -9,14 +9,16 @@ module.exports = require("stampit")({
         _protoLoader: require("@grpc/proto-loader"),
         port: process.env.PORT,
         protoFile: null,
+        credentials: null,
         protoFileContents: null,
         options: null,
     },
 
-    init({ port, protoFile, options }) {
+    init({ port, protoFile, options, credentials }) {
         if (port) this.port = port;
         if (protoFile) this.protoFile = protoFile;
         if (options) this.options = options;
+        this.credentials = credentials || this.credentials || this._grpc.ServerCredentials.createInsecure();
     },
 
     methods: {
@@ -75,10 +77,8 @@ module.exports = require("stampit")({
             }
 
             await new Promise((resolve, reject) => {
-                this.server.bindAsync(
-                    `0.0.0.0:${this.port}`,
-                    this._grpc.ServerCredentials.createInsecure(),
-                    (err, result) => (err ? reject(err) : resolve(result))
+                this.server.bindAsync(`0.0.0.0:${this.port}`, this.credentials, (err, result) =>
+                    err ? reject(err) : resolve(result)
                 );
             });
 
