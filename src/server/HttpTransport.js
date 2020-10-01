@@ -40,7 +40,7 @@ module.exports = require("stampit")({
 
         startServer(defaultCtx) {
             this.server = this._micro(async (req, res) => {
-                const ctx = { ...defaultCtx, http: { req, res, send: this._micro.send, url: parseUrl(req.url) } };
+                const ctx = { ...defaultCtx, http: { req, res, url: parseUrl(req.url) } };
 
                 ctx.http.query = {};
                 if (ctx.http.url.query) {
@@ -72,7 +72,7 @@ module.exports = require("stampit")({
 
         reply(ctx) {
             if (!ctx.http.statusCode) ctx.http.statusCode = 200;
-            ctx.http.send(ctx.http.res, ctx.http.statusCode, ctx.result);
+            this._micro.send(ctx.http.res, ctx.http.statusCode, ctx.result);
         },
     },
 });
