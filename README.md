@@ -1,12 +1,18 @@
 # Allserver
 
-Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. Think HTTP, gRPC, WebSockets, Lambda, inter-process, unix sockets, etc Remote Procedure Calls using exactly the same client and server code.
+Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic.
 
-Should be used for (micro)services where NodeJS is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
+Think HTTP, gRPC, GraphQL, WebSockets, Lambda, inter-process, unix sockets, etc Remote Procedure Calls using exactly the same client and server code.
+
+Should be used in (micro)services where NodeJS is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
+
+Superpowers the Allserver gives you:
 
 - Call gRPC server methods from browser/curl/Postman.
-- Convert your HTTP server to gRPC with single line change.
+- Convert your HTTP server to gRPC with a single line change.
 - Call any transport/protocol server methods with exactly the same client-side code.
+- Stop writing `try-catch` when calling a remote procedure.
+- And moar!
 
 ### Quick example
 
@@ -469,11 +475,23 @@ const allserver = Allserver({
 
 ### How to add Auth?
 
-Server side you do it yourself. Via the `before` pre-middleware.
+Server side you do it yourself via the `before` pre-middleware.
+
+```js
+const allserver = Allserver({
+  procedures,
+  before(ctx) {
+      console.log(ctx.procedureName, ctx.arg);
+  },
+  after(ctx) {
+      console.log(ctx.procedureName, ctx.arg);
+      console.log(ctx.result, ctx.error);
+  },
+});
+```
 
 Allserver does not (yet) standardise how the "bad auth" replies should look and feel. That's a discussion we need to take. Refer to the **Core principles** above for insights.
 
-Client side
+Client side you do it yourself via client transport middleware.
 
-- AllserverClient - not yet possible, TODO.
-- Your client module - do it yourself.
+

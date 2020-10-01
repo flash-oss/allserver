@@ -1,20 +1,32 @@
-const { isString } = require("../util");
+const { isString, isFunction, isObject } = require("../util");
 
 // Protected variables
 const p = Symbol.for("AllserverClient");
 
 function addProceduresToObject(allserverClient, procedures) {
+    let error;
     try {
         procedures = JSON.parse(procedures);
     } catch (err) {
-        throw new Error("Malformed introspection");
+        error = err;
     }
-    const nameMapper = allserverClient[p].nameMapper || ((a) => a);
-    for (let [procedureName, type] of Object.entries(procedures || {})) {
-        procedureName = nameMapper(procedureName);
+    if (error || !isObject(procedures)) {
+        const result = {
+            success: false,
+            code: "ALLSERVER_MALFORMED_INTROSPECTION",
+            message: `Malformed introspection from ${allserverClient[p].transport.uri}`,
+        };
+        if (error) result.error = error;
+        return result;
+    }
+
+    const nameMapper = isFunction(allserverClient[p].nameMapper) ? allserverClient[p].nameMapper : null;
+    for (let [procedureName, type] of Object.entries(procedures)) {
+        if (nameMapper) procedureName = nameMapper(procedureName);
         if (!procedureName || type !== "function" || allserverClient[procedureName]) continue;
         allserverClient[procedureName] = (...args) => allserverClient.call(procedureName, ...args);
     }
+    return { success: true };
 }
 
 function proxyWrappingInitialiser() {
@@ -50,11 +62,16 @@ function proxyWrappingInitialiser() {
                     // Ok. Automatic introspection is necessary. Let's do it.
                     return async (...args) => {
                         const introspectionResult = await allserverClient.introspect();
-                        introspectionCache.set(uri, introspectionResult);
 
                         if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
                             // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
-                            addProceduresToObject(allserverClient, introspectionResult.procedures);
+                            const result = addProceduresToObject(allserverClient, introspectionResult.procedures);
+                            if (result.success) {
+                                introspectionCache.set(uri, introspectionResult);
+                            } else {
+                                // Couldn't apply introspection to the client object.
+                                return result;
+                            }
                         }
 
                         if (procedureName in allserverClient) {
@@ -97,7 +114,7 @@ module.exports = require("stampit")({
         [p]: {
             // The protocol implementation strategy.
             transport: null,
-            // Disable any exception throwing when calling any methods.
+            // Disable any exception throwing when calling any methods. Otherwise, throws on "not found" and "can't reach server".
             neverThrow: true,
             // Automatically call corresponding remote procedure, even if such method does not exist on this client object.
             dynamicMethods: true,
@@ -109,9 +126,10 @@ module.exports = require("stampit")({
     },
 
     deepConf: {
+        // prettier-ignore
         transports: [
-            { schema: "http", getStamp: () => require("./HttpClientTransport") },
-            { schema: "grpc", getStamp: () => require("./GrpcClientTransport") },
+            { schema: "http", get Transport() { return require("./HttpClientTransport"); } },
+            { schema: "grpc", get Transport() { return require("./GrpcClientTransport"); } },
         ],
     },
 
@@ -130,7 +148,7 @@ module.exports = require("stampit")({
             );
             if (!transportConfig) throw new Error(`Schema not supported: ${uri}`);
 
-            this[p].transport = transportConfig.getStamp()({ uri });
+            this[p].transport = transportConfig.Transport({ uri });
         }
     },
 
@@ -151,19 +169,56 @@ module.exports = require("stampit")({
         },
 
         async call(procedureName, arg) {
-            let promise = Promise.resolve(this[p].transport.call(procedureName, arg));
-            if (this[p].neverThrow) {
-                promise = promise.catch((err) => {
-                    let code = err.code;
-                    let message = err.message;
+            const ctx = { procedureName, arg, client: this };
+            const transport = this[p].transport;
+            if (isFunction(transport.before)) {
+                try {
+                    const result = await transport.before(ctx);
+                    if (result) ctx.result = result;
+                } catch (err) {
+                    if (!this[p].neverThrow) throw err;
+
+                    let { code, message } = err;
+                    if (!code) {
+                        code = "ALLSERVER_CLIENT_BEFORE_ERROR";
+                        message = `The 'before' middleware threw while calling: ${ctx.procedureName}`;
+                    }
+                    ctx.result = { success: false, code, message, error: err };
+                }
+            }
+
+            if (!ctx.result) {
+                try {
+                    ctx.result = await transport.call(ctx.procedureName, ctx.arg);
+                } catch (err) {
+                    if (!this[p].neverThrow) throw err;
+
+                    let { code, message } = err;
                     if (!err.code || err.noNetToServer) {
                         code = "ALLSERVER_PROCEDURE_UNREACHABLE";
-                        message = `Couldn't reach remote procedure: ${procedureName}`;
+                        message = `Couldn't reach remote procedure: ${ctx.procedureName}`;
                     }
-                    return { success: false, code, message, error: err };
-                });
+                    ctx.result = { success: false, code, message, error: err };
+                }
             }
-            return promise;
+
+            if (isFunction(transport.after)) {
+                try {
+                    const result = await transport.after(ctx);
+                    if (result) ctx.result = result;
+                } catch (err) {
+                    if (!this[p].neverThrow) throw err;
+
+                    let { code, message } = err;
+                    if (!code) {
+                        code = "ALLSERVER_CLIENT_AFTER_ERROR";
+                        message = `The 'after' middleware threw while calling: ${ctx.procedureName}`;
+                    }
+                    ctx.result = { success: false, code, message, error: err };
+                }
+            }
+
+            return ctx.result;
         },
     },
 
@@ -179,8 +234,8 @@ module.exports = require("stampit")({
     },
 
     statics: {
-        defaults({ transport, neverThrow, dynamicMethods, autoIntrospect } = {}) {
-            return this.deepProps({ [p]: { transport, neverThrow, dynamicMethods, autoIntrospect } });
+        defaults({ transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper } = {}) {
+            return this.deepProps({ [p]: { transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper } });
         },
     },
 });

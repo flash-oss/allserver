@@ -381,4 +381,33 @@ describe("Allserver", () => {
             assert.strictEqual(server.logger, console);
         });
     });
+
+    describe("defaults", () => {
+        it("should work", () => {
+            const procedures = {};
+            const transport = VoidTransport();
+            const logger = {};
+            const introspection = false;
+            const before = () => {};
+            const after = () => {};
+
+            const NewServer = Allserver.defaults({ procedures, transport, logger, introspection, before, after });
+
+            function propsAreOk(props) {
+                assert.strictEqual(props.procedures, procedures);
+                assert.strictEqual(props.transport, transport);
+                assert.strictEqual(props.logger, logger);
+                assert.strictEqual(props.introspection, introspection);
+                assert.strictEqual(props.before, before);
+                assert.strictEqual(props.after, after);
+            }
+
+            propsAreOk(NewServer.compose.properties);
+            propsAreOk(NewServer());
+        });
+
+        it("should create new factory", () => {
+            assert.notStrictEqual(Allserver, Allserver.defaults());
+        });
+    });
 });

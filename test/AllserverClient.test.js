@@ -10,8 +10,9 @@ const VoidClientTransport = require("../src/client/ClientTransport").compose({
     },
 });
 const AllserverClient = require("..").AllserverClient.deepConf({
-    transports: [{ schema: "void", getStamp: () => VoidClientTransport }], // added one more known schema
+    transports: [{ schema: "void", Transport: VoidClientTransport }], // added one more known schema
 });
+const p = Symbol.for("AllserverClient");
 
 describe("AllserverClient", () => {
     afterEach(() => {
@@ -28,13 +29,24 @@ describe("AllserverClient", () => {
             assert.throws(() => AllserverClient({ uri: "unexist://bla" }), /schema/i);
         });
 
-        it("should not throw if uri schema is supported", () => {
-            AllserverClient({ uri: "void://bla" });
+        it("should work with http", () => {
+            const client = AllserverClient({ uri: "http://bla" });
+            assert(client[p].transport._fetch); // duck typing
+        });
+
+        it("should work with grpc", () => {
+            const client = AllserverClient({ uri: "grpc://bla" });
+            assert(client[p].transport._grpc); // duck typing
+        });
+
+        it("should work with third party added transports supported", () => {
+            const client = AllserverClient({ uri: "void://bla" });
+            assert.strictEqual(client[p].transport.uri, "void://bla");
         });
     });
 
     describe("#introspect", () => {
-        it("should do not throw if underlying transport fails to connect", async () => {
+        it("should not throw if underlying transport fails to connect", async () => {
             const MockedTransport = VoidClientTransport.methods({
                 introspect: () => Promise.reject(new Error("Cannot reach server")),
             });
@@ -45,10 +57,44 @@ describe("AllserverClient", () => {
             assert.strictEqual(result.message, "Couldn't introspect void://localhost");
             assert.strictEqual(result.error.message, "Cannot reach server");
         });
+
+        it("should not throw if underlying transport returns malformed introspection", async () => {
+            const MockedTransport = VoidClientTransport.methods({
+                introspect: () => ({
+                    success: true,
+                    code: "OK",
+                    message: "Introspection as JSON string",
+                    procedures: "bad food",
+                }),
+            });
+
+            const result = await AllserverClient({ transport: MockedTransport() }).testMethod();
+            assert.strictEqual(result.success, false);
+            assert.strictEqual(result.code, "ALLSERVER_MALFORMED_INTROSPECTION");
+            assert.strictEqual(result.message, "Malformed introspection from void://localhost");
+            assert.strictEqual(result.error.message, "Unexpected token b in JSON at position 0");
+        });
+
+        it("should not throw if underlying transport returns introspection in a wrong format", async () => {
+            const MockedTransport = VoidClientTransport.methods({
+                introspect: () => ({
+                    success: true,
+                    code: "OK",
+                    message: "Introspection as JSON string",
+                    procedures: "42",
+                }),
+            });
+
+            const result = await AllserverClient({ transport: MockedTransport() }).testMethod();
+            assert.strictEqual(result.success, false);
+            assert.strictEqual(result.code, "ALLSERVER_MALFORMED_INTROSPECTION");
+            assert.strictEqual(result.message, "Malformed introspection from void://localhost");
+            assert(!result.error);
+        });
     });
 
     describe("#call", () => {
-        it("should throw if underlying transport fails to connect", async () => {
+        it("should throw if underlying transport fails to connect and neverThrow=false", async () => {
             const MockedTransport = VoidClientTransport.methods({
                 call: () => Promise.reject(new Error("Cannot reach server")),
             });
@@ -59,7 +105,31 @@ describe("AllserverClient", () => {
             );
         });
 
-        it("should not throw if neverThrow enabled", async () => {
+        it("should throw if transport 'before' or 'after' middlewares throw and neverThrow=false", async () => {
+            let MockedTransport = VoidClientTransport.methods({
+                before() {
+                    throw new Error("before threw");
+                },
+            });
+
+            await assert.rejects(
+                AllserverClient({ transport: MockedTransport(), neverThrow: false }).call(),
+                /before threw/
+            );
+
+            MockedTransport = VoidClientTransport.methods({
+                after() {
+                    throw new Error("after threw");
+                },
+            });
+
+            await assert.rejects(
+                AllserverClient({ transport: MockedTransport(), neverThrow: false }).call(),
+                /after threw/
+            );
+        });
+
+        it("should not throw if neverThrow enabled (default behaviour)", async () => {
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
                     return {
@@ -109,30 +179,225 @@ describe("AllserverClient", () => {
 
     describe("nameMapper", () => {
         it("should map and filter names", async () => {
-            "get-rates".replace(/(-\w)/g, (k) => k[1].toUpperCase());
-
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
                     return {
                         success: true,
                         code: "OK",
                         message: "Ok",
-                        procedures: JSON.stringify({ "get-rates": "function" }),
+                        procedures: JSON.stringify({ "get-rates": "function", "hide-me": "function" }),
                     };
                 },
                 async call(procedureName, arg) {
-                    assert.strictEqual(procedureName, "foo");
+                    assert.strictEqual(procedureName, "getRates");
                     assert.deepStrictEqual(arg, { a: 1 });
-                    return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
+                    return { success: true, code: "CALLED", message: "A is good", b: 42 };
                 },
             });
 
-            const nameMapper = (name) => name.replace(/(-\w)/g, (k) => k[1].toUpperCase());
+            const nameMapper = (name) => name !== "hide-me" && name.replace(/(-\w)/g, (k) => k[1].toUpperCase());
             const client = AllserverClient({ transport: MockedTransport(), nameMapper });
             assert.strictEqual(Reflect.has(client, "getRates"), false); // dont have it yet
-            const result = await client.foo({ a: 1 });
+            const result = await client.getRates({ a: 1 });
             assert.strictEqual(Reflect.has(client, "getRates"), true); // have it now!
-            assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+            assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
+        });
+    });
+
+    describe("client transport middleware", () => {
+        describe("before", () => {
+            it("should call 'before'", async () => {
+                const MockedTransport = VoidClientTransport.methods({
+                    async introspect() {
+                        return {
+                            success: true,
+                            code: "OK",
+                            message: "Ok",
+                            procedures: JSON.stringify({ getRates: "function" }),
+                        };
+                    },
+                    async call(procedureName, arg) {
+                        assert.strictEqual(procedureName, "getRates");
+                        assert.deepStrictEqual(arg, { a: 1 });
+                        return { success: true, code: "CALLED", message: "A is good", b: 42 };
+                    },
+                    before(ctx) {
+                        assert.strictEqual(ctx.procedureName, "getRates");
+                        assert.deepStrictEqual(ctx.arg, { a: 1 });
+                        beforeCalled = true;
+                    },
+                });
+
+                let beforeCalled = false;
+                const client = AllserverClient({
+                    transport: MockedTransport(),
+                });
+                const result = await client.getRates({ a: 1 });
+                assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
+                assert(beforeCalled);
+            });
+
+            it("should allow result override in 'before'", async () => {
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        before() {
+                            return "Override result";
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, "Override result");
+            });
+
+            it("should handle rejections from 'before'", async () => {
+                const err = new Error("'before' is throwing");
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        before() {
+                            throw err;
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, {
+                    success: false,
+                    code: "ALLSERVER_CLIENT_BEFORE_ERROR",
+                    message: "The 'before' middleware threw while calling: foo",
+                    error: err,
+                });
+            });
+
+            it("should override code if 'before' error has it", async () => {
+                const err = new Error("'before' is throwing");
+                err.code = "OVERRIDE_CODE";
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        before() {
+                            throw err;
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, {
+                    success: false,
+                    code: "OVERRIDE_CODE",
+                    message: "'before' is throwing",
+                    error: err,
+                });
+            });
+        });
+
+        describe("after", () => {
+            it("should call 'after'", async () => {
+                const MockedTransport = VoidClientTransport.methods({
+                    async introspect() {
+                        return {
+                            success: true,
+                            code: "OK",
+                            message: "Ok",
+                            procedures: JSON.stringify({ getRates: "function" }),
+                        };
+                    },
+                    async call(procedureName, arg) {
+                        assert.strictEqual(procedureName, "getRates");
+                        assert.deepStrictEqual(arg, { a: 1 });
+                        return { success: true, code: "CALLED", message: "A is good", b: 42 };
+                    },
+
+                    after(ctx) {
+                        assert.strictEqual(ctx.procedureName, "getRates");
+                        assert.deepStrictEqual(ctx.arg, { a: 1 });
+                        assert.deepStrictEqual(ctx.result, {
+                            success: true,
+                            code: "CALLED",
+                            message: "A is good",
+                            b: 42,
+                        });
+                        afterCalled = true;
+                    },
+                });
+
+                let afterCalled = false;
+                const client = AllserverClient({
+                    transport: MockedTransport(),
+                });
+                const result = await client.getRates({ a: 1 });
+                assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
+                assert(afterCalled);
+            });
+
+            it("should allow result override in 'after'", async () => {
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        after() {
+                            return "Override result";
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, "Override result");
+            });
+
+            it("should handle rejections from 'after'", async () => {
+                const err = new Error("'after' is throwing");
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        after() {
+                            throw err;
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, {
+                    success: false,
+                    code: "ALLSERVER_CLIENT_AFTER_ERROR",
+                    message: "The 'after' middleware threw while calling: foo",
+                    error: err,
+                });
+            });
+
+            it("should override code if 'after' error has it", async () => {
+                const err = new Error("'after' is throwing");
+                err.code = "OVERRIDE_CODE";
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        after() {
+                            throw err;
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, {
+                    success: false,
+                    code: "OVERRIDE_CODE",
+                    message: "'after' is throwing",
+                    error: err,
+                });
+            });
+        });
+
+        describe("before+after", () => {
+            it("should call 'after' even if 'before' throws", async () => {
+                let afterCalled = false;
+                const err = new Error("'before' is throwing");
+                const client = AllserverClient({
+                    transport: VoidClientTransport({
+                        before() {
+                            throw err;
+                        },
+                        after() {
+                            afterCalled = true;
+                        },
+                    }),
+                });
+                const result = await client.foo();
+                assert.deepStrictEqual(result, {
+                    success: false,
+                    code: "ALLSERVER_CLIENT_BEFORE_ERROR",
+                    message: "The 'before' middleware threw while calling: foo",
+                    error: err,
+                });
+            });
         });
     });
 
@@ -302,20 +567,22 @@ describe("AllserverClient", () => {
                 neverThrow: false,
                 dynamicMethods: false,
                 autoIntrospect: false,
+                nameMapper: (a) => a,
             });
 
-            const p = Symbol.for("AllserverClient");
+            function protectedsAreOk(protecteds) {
+                assert.strictEqual(protecteds.neverThrow, false);
+                assert.strictEqual(protecteds.dynamicMethods, false);
+                assert.strictEqual(protecteds.autoIntrospect, false);
+                assert.strictEqual(typeof protecteds.nameMapper, "function");
+            }
 
-            let protecteds = NewClient.compose.deepProperties[p];
-            assert.strictEqual(protecteds.neverThrow, false);
-            assert.strictEqual(protecteds.dynamicMethods, false);
-            assert.strictEqual(protecteds.autoIntrospect, false);
+            protectedsAreOk(NewClient.compose.deepProperties[p]);
+            protectedsAreOk(NewClient({ uri: "void://bla" })[p]);
+        });
 
-            const client = NewClient({ uri: "void://bla" });
-            protecteds = client[p];
-            assert.strictEqual(protecteds.neverThrow, false);
-            assert.strictEqual(protecteds.dynamicMethods, false);
-            assert.strictEqual(protecteds.autoIntrospect, false);
+        it("should create new factory", () => {
+            assert.notStrictEqual(AllserverClient, AllserverClient.defaults());
         });
     });
 });
