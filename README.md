@@ -482,16 +482,42 @@ const allserver = Allserver({ procedures });
 
 You can add only **one** pre-middleware, as well as **one** post-middleware.
 
+#### Server side
+
 ```js
 const allserver = Allserver({
   procedures,
-  before(ctx) {
+
+  async before(ctx) {
     console.log(ctx.procedureName, ctx.procedure, ctx.arg);
+    // If you return anything from here, it will become the call result.
   },
-  after(ctx) {
+  async after(ctx) {
     console.log(ctx.procedureName, ctx.procedure, ctx.arg);
     console.log(ctx.introspection, ctx.result, ctx.error);
+    // If you return anything from here, it will become the call result.
   },
+});
+```
+
+#### Client side
+
+```js
+const { AllserverClient, HttpClientTransport } = require("allserver");
+
+const client = AllserverClient({
+  transport: AnyOfTheClientTransport({
+    uri: "whatever://my-server:4000",
+
+    async before(ctx) {
+      console.log(ctx.procedureName, ctx.arg);
+      // If you return anything from here, it will become the call result.
+    },
+    async after(ctx) {
+      console.log(ctx.result, ctx.error);
+      // If you return anything from here, it will become the call result.
+    },
+  }),
 });
 ```
 
@@ -543,13 +569,13 @@ const { AllserverClient, HttpClientTransport } = require("allserver");
 const client = AllserverClient({
   transport: HttpClientTransport({
     uri: "http://my-server:4000",
-    before(ctx) {
+    async before(ctx) {
       console.log(ctx.procedureName, ctx.arg);
       ctx.http.mode = "cors";
       ctx.http.credentials = "include";
       ctx.http.headers.authorization = "Basic my-token";
     },
-    after(ctx) {
+    async after(ctx) {
       if (ctx.error) console.error(ctx.error) else console.log(ctx.result);
     },
   }),
@@ -562,7 +588,7 @@ Alternatively, you can "inherit" transports:
 const { AllserverClient, HttpClientTransport } = require("allserver");
 
 const MyHttpTransportWithAuth = HttpClientTransport.methods({
-  before(ctx) {
+  async before(ctx) {
     ctx.http.mode = "cors";
     ctx.http.credentials = "include";
     ctx.http.headers.authorization = "Basic my-token";
