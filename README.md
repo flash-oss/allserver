@@ -591,3 +591,7 @@ const client = AllserverClient({
   transport: MyHttpTransportWithAuth({ uri: "http://my-server:4000" }),
 });
 ```
+
+### TypeScript support?
+
+We are waiting for your contributions.
