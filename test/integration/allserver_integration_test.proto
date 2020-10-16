@@ -20,6 +20,7 @@ service MyService {
   rpc introspection (IntrospectionRequest) returns (Reply) {}
   rpc gate(GateRequest) returns (GateReply) {}
   rpc throws(Empty) returns (Reply) {}
+  rpc throwsBadArgs(Empty) returns (Reply) {}
 }
 
 message HelloRequest {

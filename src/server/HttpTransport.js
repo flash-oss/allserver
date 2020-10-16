@@ -69,7 +69,11 @@ module.exports = require("stampit")({
             ctx.http.statusCode = 404;
         },
         prepareProcedureErrorReply(ctx) {
+            // Generic exception.
             ctx.http.statusCode = 500;
+
+            // nodejs assert() exception. In HTTP world this likely means 400 "Bad Request".
+            if (ctx.error.code === "ERR_ASSERTION") ctx.http.statusCode = 400;
         },
         prepareIntrospectionReply(/* ctx */) {},
 

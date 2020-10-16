@@ -19,6 +19,9 @@ const procedures = {
     throws() {
         this.ping.me();
     },
+    throwsBadArgs(arg) {
+        assert(arg.missingArg, "missingArg is mandatory");
+    },
     createUser({ firstName, lastName }) {
         // call database ...
         return { success: true, code: "CREATED", user: { id: String(Math.random()).substr(2), firstName, lastName } };
@@ -63,6 +66,11 @@ async function callClientMethods(client) {
     assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
     assert.strictEqual(response.message, "'Cannot read property 'me' of undefined' error in 'throws' procedure");
 
+    response = await client.throwsBadArgs({});
+    assert.strictEqual(response.success, false);
+    assert.strictEqual(response.code, "ERR_ASSERTION");
+    assert.strictEqual(response.message, `'missingArg is mandatory' error in 'throwsBadArgs' procedure`);
+
     response = await client.unexist({});
     assert.strictEqual(response.success, false);
     assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
@@ -102,10 +110,20 @@ describe("integration", function () {
 
             // HTTP-ony specific tests
 
+            // Should return 400
+            response = await httpClient.throwsBadArgs();
+            assert.strictEqual(response.code, "ERR_ASSERTION");
+            assert.strictEqual(response.error.status, 400);
+
             // Should return 404
             response = await httpClient.unexist();
             assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
             assert.strictEqual(response.error.status, 404);
+
+            // Should return 500
+            response = await httpClient.throws();
+            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
+            assert.strictEqual(response.error.status, 500);
 
             await httpServer.stop();
         });
