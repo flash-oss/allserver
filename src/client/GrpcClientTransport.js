@@ -86,7 +86,7 @@ module.exports = require("./ClientTransport").compose({
             }
 
             if (!this._grpcClient[procedureName]) {
-                const error = new Error(`Procedure not found: ${procedureName}`);
+                const error = new Error(`Procedure '${procedureName}' not found`);
                 error.code = "ALLSERVER_PROCEDURE_NOT_FOUND";
                 throw error;
             }

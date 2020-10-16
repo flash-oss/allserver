@@ -55,7 +55,7 @@ module.exports = require("stampit")({
                 ctx.result = {
                     success: false,
                     code: "ALLSERVER_PROCEDURE_NOT_FOUND",
-                    message: `Procedure not found: ${ctx.procedureName}`,
+                    message: `Procedure '${ctx.procedureName}' not found`,
                 };
                 await this.transport.prepareNotFoundReply(ctx);
                 return;
@@ -70,7 +70,7 @@ module.exports = require("stampit")({
                 ctx.result = {
                     success: false,
                     code: err.code || "ALLSERVER_PROCEDURE_ERROR",
-                    message: "`" + err.message + "` in: " + ctx.procedureName,
+                    message: `'${err.message}' error in '${ctx.procedureName}' procedure`,
                 };
                 return;
             }
@@ -89,6 +89,30 @@ module.exports = require("stampit")({
             }
         },
 
+        async _callMiddlewares(ctx, middlewareType) {
+            if (!this[middlewareType]) return;
+
+            const middlewares = [].concat(this[middlewareType]).filter(isFunction);
+            for (const middleware of middlewares) {
+                try {
+                    const result = await middleware(ctx);
+                    if (result !== undefined) {
+                        ctx.result = result;
+                        break;
+                    }
+                } catch (err) {
+                    this.logger.error("ALLSERVER_MIDDLEWARE_ERROR", err);
+                    ctx.error = err;
+                    ctx.result = {
+                        success: false,
+                        code: err.code || "ALLSERVER_MIDDLEWARE_ERROR",
+                        message: `'${err.message}' error in '${middlewareType}' middleware`,
+                    };
+                    return;
+                }
+            }
+        },
+
         async handleCall(ctx) {
             ctx.callNumber = this.callsCount;
             this.callsCount += 1;
@@ -96,12 +120,7 @@ module.exports = require("stampit")({
             ctx.isIntrospection = this.transport.isIntrospection(ctx);
             if (!ctx.isIntrospection && ctx.procedureName) ctx.procedure = this.procedures[ctx.procedureName];
 
-            if (this.before) {
-                const result = await this.before(ctx);
-                if (result !== undefined) {
-                    ctx.result = result;
-                }
-            }
+            await this._callMiddlewares(ctx, "before");
 
             if (!ctx.result) {
                 if (ctx.isIntrospection) {
@@ -111,13 +130,8 @@ module.exports = require("stampit")({
                 }
             }
 
-            if (this.after) {
-                const result = await this.after(ctx);
-                if (result !== undefined) {
-                    // Warning! Overwriting the result.
-                    ctx.result = result;
-                }
-            }
+            // Warning! This call might overwrite an existing result.
+            await this._callMiddlewares(ctx, "after");
 
             this.transport.reply(ctx);
         },

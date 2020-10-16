@@ -463,7 +463,7 @@ You'll get a normal reply, no exceptions thrown client-side, but the `success` f
 {
   "success": false,
   "code": "ALLSERVER_PROCEDURE_ERROR",
-  "message": "`'undefined' in not a function` in: procedureName"
+  "message": "`'undefined' is not a function` in: procedureName"
 }
 ```
 
@@ -480,7 +480,9 @@ const allserver = Allserver({ procedures });
 
 ### Can I add a middleware?
 
-You can add only **one** pre-middleware, as well as **one** post-middleware.
+You can add one or multiple pre-middlewares, as well as one or multiple post-middleware. Anything returned from a middleware (except the `undefined`) becomes the call result, and the rest of the middlewares will be skipped if any.
+
+The `after` middleware(s) is always called.
 
 #### Server side
 
@@ -497,6 +499,17 @@ const allserver = Allserver({
     console.log(ctx.introspection, ctx.result, ctx.error);
     // If you return anything from here, it will become the call result.
   },
+});
+```
+
+Multiple middlewares example:
+
+```js
+const allserver = Allserver({
+  procedures,
+
+  before: myPreMiddlewaresArray,
+  after: myPostMiddlewaresArray,
 });
 ```
 
@@ -561,7 +574,7 @@ const client = AllserverClient({
 
 ##### My authorisation is not supported. What should I do?
 
-If something more sophisticated is needed - the "Client Transport" can have `before` and `after` middlewares.
+If something more sophisticated is needed - the "Client Transport" can have `before` and `after` middleware(s) which run client-side.
 
 ```js
 const { AllserverClient, HttpClientTransport } = require("allserver");

@@ -44,7 +44,7 @@ async function callClientMethods(client) {
     // Introspection should not work now
     response = await client.introspect();
     assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ALLSERVER_INTROSPECTION_FAILED");
+    assert.strictEqual(response.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
     // Turn on introspection
     response = await client.introspection({ enable: true });
     assert.strictEqual(response.success, true);
@@ -62,13 +62,13 @@ async function callClientMethods(client) {
     assert.deepStrictEqual(response, {
         success: false,
         code: "ALLSERVER_PROCEDURE_ERROR",
-        message: "`Cannot read property 'me' of undefined` in: throws",
+        message: "'Cannot read property 'me' of undefined' error in 'throws' procedure",
     });
 
     response = await client.unexist({});
     assert.strictEqual(response.success, false);
     assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
-    assert.strictEqual(response.message, "Procedure not found: unexist");
+    assert.strictEqual(response.message, "Procedure 'unexist' not found");
 }
 
 let {

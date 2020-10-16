@@ -115,7 +115,7 @@ describe("Allserver", () => {
                     assert.deepStrictEqual(ctx.result, {
                         success: false,
                         code: "ALLSERVER_PROCEDURE_ERROR",
-                        message: "`'undefined' in not a function` in: foo",
+                        message: "''undefined' is not a function' error in 'foo' procedure",
                     });
                     replied = true;
                 },
@@ -125,13 +125,13 @@ describe("Allserver", () => {
                 logger: {
                     error(code, err) {
                         assert.strictEqual(code, "ALLSERVER_PROCEDURE_ERROR");
-                        assert.strictEqual(err.message, "'undefined' in not a function");
+                        assert.strictEqual(err.message, "'undefined' is not a function");
                         logged = true;
                     },
                 },
                 procedures: {
                     async foo() {
-                        throw new TypeError("'undefined' in not a function");
+                        throw new TypeError("'undefined' is not a function");
                     },
                 },
                 transport: MockedTransport(),
@@ -272,101 +272,244 @@ describe("Allserver", () => {
     });
 
     describe("middleware", () => {
-        it("should call 'before'", async () => {
-            let called = false;
-            const server = Allserver({
-                before(ctx) {
-                    assert.deepStrictEqual(ctx, {
-                        callNumber: 0,
-                        procedure: server.procedures.testMethod,
-                        procedureName: "testMethod",
-                        isIntrospection: false,
-                        void: {
-                            proc: "testMethod",
-                        },
-                    });
-                    called = true;
-                },
+        describe("'before'", () => {
+            it("should call 'before'", async () => {
+                let called = false;
+                const server = Allserver({
+                    before(ctx) {
+                        assert.deepStrictEqual(ctx, {
+                            callNumber: 0,
+                            procedure: server.procedures.testMethod,
+                            procedureName: "testMethod",
+                            isIntrospection: false,
+                            void: {
+                                proc: "testMethod",
+                            },
+                        });
+                        called = true;
+                    },
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(called);
             });
 
-            let ctx = { void: { proc: "testMethod" } };
-            await server.handleCall(ctx);
+            it("should handle exceptions from 'before'", async () => {
+                let logged = false;
+                const server = Allserver({
+                    logger: {
+                        error(code, err) {
+                            assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
+                            assert.strictEqual(err.message, "Handle me please");
+                            logged = true;
+                        },
+                    },
+                    before() {
+                        throw new Error("Handle me please");
+                    },
+                });
 
-            assert(called);
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(logged);
+                assert.deepStrictEqual(ctx.result, {
+                    success: false,
+                    code: "ALLSERVER_MIDDLEWARE_ERROR",
+                    message: "'Handle me please' error in 'before' middleware",
+                });
+            });
+
+            it("should allow multiple 'before'", async () => {
+                let called = [];
+                const server = Allserver({
+                    before: [
+                        () => {
+                            called.push(1);
+                            return undefined;
+                        },
+                        () => {
+                            called.push(2);
+                            return { success: false, code: "BAD_AUTH_OR_SOMETHING", message: "Bad auth or something" };
+                        },
+                        () => {
+                            called.push(3);
+                            assert.fail("should not be called");
+                        },
+                    ],
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert.deepStrictEqual(called, [1, 2]);
+                assert.deepStrictEqual(ctx.result, {
+                    success: false,
+                    code: "BAD_AUTH_OR_SOMETHING",
+                    message: "Bad auth or something",
+                });
+            });
+
+            it("should return 'before' result", async () => {
+                let replied = false;
+                const MockedTransport = VoidTransport.methods({
+                    async reply(ctx) {
+                        assert.strictEqual(ctx.result, 42);
+                        replied = true;
+                    },
+                });
+                const server = Allserver({
+                    transport: MockedTransport(),
+                    before() {
+                        // There must be no result yet
+                        assert(!ctx.result);
+                        return 42;
+                    },
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(replied);
+            });
         });
 
-        it("should return 'before' result", async () => {
-            let replied = false;
-            const MockedTransport = VoidTransport.methods({
-                async reply(ctx) {
-                    assert.strictEqual(ctx.result, 42);
-                    replied = true;
-                },
-            });
-            const server = Allserver({
-                transport: MockedTransport(),
-                before() {
-                    // There must be no result yet
-                    assert(!ctx.result);
-                    return 42;
-                },
+        describe("'after'", () => {
+            it("should call 'after'", async () => {
+                let called = false;
+                const server = Allserver({
+                    after(ctx) {
+                        assert.deepStrictEqual(ctx, {
+                            callNumber: 0,
+                            procedure: server.procedures.testMethod,
+                            procedureName: "testMethod",
+                            isIntrospection: false,
+                            result: {
+                                code: "SUCCESS",
+                                message: "Success",
+                                success: true,
+                            },
+                            void: {
+                                proc: "testMethod",
+                            },
+                        });
+                        called = true;
+                    },
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(called);
             });
 
-            let ctx = { void: { proc: "testMethod" } };
-            await server.handleCall(ctx);
+            it("should handle exceptions from 'before'", async () => {
+                let logged = false;
+                const server = Allserver({
+                    logger: {
+                        error(code, err) {
+                            assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
+                            assert.strictEqual(err.message, "Handle me please");
+                            logged = true;
+                        },
+                    },
+                    after() {
+                        throw new Error("Handle me please");
+                    },
+                });
 
-            assert(replied);
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(logged);
+                assert.deepStrictEqual(ctx.result, {
+                    success: false,
+                    code: "ALLSERVER_MIDDLEWARE_ERROR",
+                    message: "'Handle me please' error in 'after' middleware",
+                });
+            });
+
+            it("should allow multiple 'after'", async () => {
+                let called = [];
+                const server = Allserver({
+                    after: [
+                        () => {
+                            called.push(1);
+                            return undefined;
+                        },
+                        () => {
+                            called.push(2);
+                            return { success: false, code: "OVERWRITING_RESULT", message: "Something something" };
+                        },
+                        () => {
+                            called.push(3);
+                            assert.fail("Should not be called");
+                        },
+                    ],
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert.deepStrictEqual(called, [1, 2]);
+                assert.deepStrictEqual(ctx.result, {
+                    success: false,
+                    code: "OVERWRITING_RESULT",
+                    message: "Something something",
+                });
+            });
+
+            it("should return 'after' result", async () => {
+                let replied = false;
+                const MockedTransport = VoidTransport.methods({
+                    async reply(ctx) {
+                        assert.strictEqual(ctx.result, 42);
+                        replied = true;
+                    },
+                });
+                const server = Allserver({
+                    transport: MockedTransport(),
+                    after(ctx) {
+                        // There already must be a result
+                        assert(ctx.result);
+                        return 42;
+                    },
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(replied);
+            });
         });
 
-        it("should call 'after'", async () => {
-            let called = false;
-            const server = Allserver({
-                after(ctx) {
-                    assert.deepStrictEqual(ctx, {
-                        callNumber: 0,
-                        procedure: server.procedures.testMethod,
-                        procedureName: "testMethod",
-                        isIntrospection: false,
-                        result: {
-                            code: "SUCCESS",
-                            message: "Success",
-                            success: true,
-                        },
-                        void: {
-                            proc: "testMethod",
-                        },
-                    });
-                    called = true;
-                },
+        describe("'before'+'after'", () => {
+            it("should call 'after' even if 'before' throws", async () => {
+                let afterCalled = false;
+                const err = new Error("Bad middleware");
+                const server = Allserver({
+                    logger: { error() {} },
+                    before() {
+                        throw err;
+                    },
+                    after() {
+                        afterCalled = true;
+                    },
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert.deepStrictEqual(ctx.result, {
+                    success: false,
+                    code: "ALLSERVER_MIDDLEWARE_ERROR",
+                    message: "'Bad middleware' error in 'before' middleware",
+                });
+                assert.strictEqual(ctx.error, err);
+                assert(afterCalled);
             });
-
-            let ctx = { void: { proc: "testMethod" } };
-            await server.handleCall(ctx);
-
-            assert(called);
-        });
-
-        it("should return 'after' result", async () => {
-            let replied = false;
-            const MockedTransport = VoidTransport.methods({
-                async reply(ctx) {
-                    assert.strictEqual(ctx.result, 42);
-                    replied = true;
-                },
-            });
-            const server = Allserver({
-                transport: MockedTransport(),
-                after(ctx) {
-                    // There already must be a result
-                    assert(ctx.result);
-                    return 42;
-                },
-            });
-
-            let ctx = { void: { proc: "testMethod" } };
-            await server.handleCall(ctx);
-
-            assert(replied);
         });
     });
 

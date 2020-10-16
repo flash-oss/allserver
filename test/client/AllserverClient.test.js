@@ -54,7 +54,7 @@ describe("AllserverClient", () => {
 
             const result = await AllserverClient({ transport: MockedTransport() }).introspect();
             assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_INTROSPECTION_FAILED");
+            assert.strictEqual(result.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
             assert.strictEqual(result.message, "Couldn't introspect void://localhost");
             assert.strictEqual(result.error.message, "Cannot reach server");
         });
@@ -206,7 +206,7 @@ describe("AllserverClient", () => {
     });
 
     describe("client transport middleware", () => {
-        describe("before", () => {
+        describe("'before'", () => {
             it("should call 'before'", async () => {
                 const MockedTransport = VoidClientTransport.methods({
                     async introspect() {
@@ -262,8 +262,8 @@ describe("AllserverClient", () => {
                 const result = await client.foo();
                 assert.deepStrictEqual(result, {
                     success: false,
-                    code: "ALLSERVER_CLIENT_BEFORE_ERROR",
-                    message: "The 'before' middleware threw while calling: foo",
+                    code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
+                    message: "The 'before' middleware error while calling 'foo' procedure",
                     error: err,
                 });
             });
@@ -288,7 +288,7 @@ describe("AllserverClient", () => {
             });
         });
 
-        describe("after", () => {
+        describe("'after'", () => {
             it("should call 'after'", async () => {
                 const MockedTransport = VoidClientTransport.methods({
                     async introspect() {
@@ -351,8 +351,8 @@ describe("AllserverClient", () => {
                 const result = await client.foo();
                 assert.deepStrictEqual(result, {
                     success: false,
-                    code: "ALLSERVER_CLIENT_AFTER_ERROR",
-                    message: "The 'after' middleware threw while calling: foo",
+                    code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
+                    message: "The 'after' middleware error while calling 'foo' procedure",
                     error: err,
                 });
             });
@@ -377,25 +377,41 @@ describe("AllserverClient", () => {
             });
         });
 
-        describe("before+after", () => {
+        describe("'before'+'after'", () => {
             it("should call 'after' even if 'before' throws", async () => {
                 let afterCalled = false;
+                let secondBeforeCalled = false;
+                let secondAfterCalled = false;
                 const err = new Error("'before' is throwing");
                 const client = AllserverClient({
                     transport: VoidClientTransport({
-                        before() {
-                            throw err;
-                        },
-                        after() {
-                            afterCalled = true;
-                        },
+                        before: [
+                            () => {
+                                throw err;
+                            },
+                            () => {
+                                secondBeforeCalled = true;
+                            },
+                        ],
+                        after: [
+                            (ctx) => {
+                                afterCalled = true;
+                                return ctx.result;
+                            },
+                            () => {
+                                secondAfterCalled = true;
+                            },
+                        ],
                     }),
                 });
                 const result = await client.foo();
+                assert(afterCalled);
+                assert(!secondBeforeCalled);
+                assert(!secondAfterCalled);
                 assert.deepStrictEqual(result, {
                     success: false,
-                    code: "ALLSERVER_CLIENT_BEFORE_ERROR",
-                    message: "The 'before' middleware threw while calling: foo",
+                    code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
+                    message: "The 'before' middleware error while calling 'foo' procedure",
                     error: err,
                 });
             });

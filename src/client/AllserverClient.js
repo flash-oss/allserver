@@ -161,31 +161,44 @@ module.exports = require("stampit")({
             // * couldn't connect to the remote host.
             return Promise.resolve(this[p].transport.introspect()).catch((err) => ({
                 success: false,
-                code: "ALLSERVER_INTROSPECTION_FAILED",
+                code: "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
                 message: `Couldn't introspect ${this[p].transport.uri}`,
                 noNetToServer: Boolean(err.noNetToServer),
                 error: err,
             }));
         },
 
-        async call(procedureName, arg) {
+        async _callMiddlewares(ctx, middlewareType) {
             const transport = this[p].transport;
-            const ctx = transport.createCallContext({ procedureName, arg, client: this });
-            if (isFunction(transport.before)) {
+
+            const middlewares = [].concat(transport[middlewareType]).filter(isFunction);
+            for (const middleware of middlewares) {
                 try {
-                    const result = await transport.before(ctx);
-                    if (result) ctx.result = result;
+                    const result = await middleware(ctx);
+                    if (result !== undefined) {
+                        ctx.result = result;
+                        break;
+                    }
                 } catch (err) {
                     if (!this[p].neverThrow) throw err;
 
                     let { code, message } = err;
                     if (!code) {
-                        code = "ALLSERVER_CLIENT_BEFORE_ERROR";
-                        message = `The 'before' middleware threw while calling: ${ctx.procedureName}`;
+                        code = "ALLSERVER_CLIENT_MIDDLEWARE_ERROR";
+                        message = `The '${middlewareType}' middleware error while calling '${ctx.procedureName}' procedure`;
                     }
                     ctx.result = { success: false, code, message, error: err };
+                    return;
                 }
             }
+        },
+
+        async call(procedureName, arg) {
+            const transport = this[p].transport;
+            const defaultCtx = { procedureName, arg, client: this };
+            const ctx = transport.createCallContext(defaultCtx);
+
+            await this._callMiddlewares(ctx, "before");
 
             if (!ctx.result) {
                 try {
@@ -202,21 +215,7 @@ module.exports = require("stampit")({
                 }
             }
 
-            if (isFunction(transport.after)) {
-                try {
-                    const result = await transport.after(ctx);
-                    if (result) ctx.result = result;
-                } catch (err) {
-                    if (!this[p].neverThrow) throw err;
-
-                    let { code, message } = err;
-                    if (!code) {
-                        code = "ALLSERVER_CLIENT_AFTER_ERROR";
-                        message = `The 'after' middleware threw while calling: ${ctx.procedureName}`;
-                    }
-                    ctx.result = { success: false, code, message, error: err };
-                }
-            }
+            await this._callMiddlewares(ctx, "after");
 
             return ctx.result;
         },

@@ -14,7 +14,7 @@ module.exports = require("stampit")({
         this.uri = uri || this.uri;
         if (!isString(this.uri)) throw new Error("`uri` connection string is required");
 
-        this.before = isFunction(before) ? before : this.before;
-        this.after = isFunction(after) ? after : this.after;
+        this.before = before != null ? before : this.before;
+        this.after = after != null ? after : this.after;
     },
 });
