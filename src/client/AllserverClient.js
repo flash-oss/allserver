@@ -122,6 +122,10 @@ module.exports = require("stampit")({
             autoIntrospect: true,
             // Map/filter procedure names from server names to something else.
             nameMapper: null,
+            // 'before' middleware(s). Invoked before calling server procedure.
+            before: null,
+            // 'after' middleware(s). Invoked after calling server procedure.
+            after: null,
         },
     },
 
@@ -133,7 +137,7 @@ module.exports = require("stampit")({
         ],
     },
 
-    init({ uri, transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper }, { stamp }) {
+    init({ uri, transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after }, { stamp }) {
         this[p].neverThrow = neverThrow != null ? neverThrow : this[p].neverThrow;
         this[p].dynamicMethods = dynamicMethods != null ? dynamicMethods : this[p].dynamicMethods;
         this[p].autoIntrospect = autoIntrospect != null ? autoIntrospect : this[p].autoIntrospect;
@@ -150,6 +154,9 @@ module.exports = require("stampit")({
 
             this[p].transport = transportConfig.Transport({ uri });
         }
+
+        this[p].before = before != null ? before : this[p].before;
+        this[p].after = after != null ? after : this[p].after;
     },
 
     methods: {
@@ -169,9 +176,7 @@ module.exports = require("stampit")({
         },
 
         async _callMiddlewares(ctx, middlewareType) {
-            const transport = this[p].transport;
-
-            const middlewares = [].concat(transport[middlewareType]).filter(isFunction);
+            const middlewares = [].concat(this[p][middlewareType]).filter(isFunction);
             for (const middleware of middlewares) {
                 try {
                     const result = await middleware(ctx);
@@ -233,8 +238,10 @@ module.exports = require("stampit")({
     },
 
     statics: {
-        defaults({ transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper } = {}) {
-            return this.deepProps({ [p]: { transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper } });
+        defaults({ transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after } = {}) {
+            return this.deepProps({
+                [p]: { transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after },
+            });
         },
     },
 });

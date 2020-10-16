@@ -107,27 +107,17 @@ describe("AllserverClient", () => {
         });
 
         it("should throw if transport 'before' or 'after' middlewares throw and neverThrow=false", async () => {
-            let MockedTransport = VoidClientTransport.methods({
-                before() {
-                    throw new Error("before threw");
-                },
-            });
+            const transport = VoidClientTransport();
+            const before = () => {
+                throw new Error("before threw");
+            };
+            await assert.rejects(AllserverClient({ transport, neverThrow: false, before }).call(), /before threw/);
 
-            await assert.rejects(
-                AllserverClient({ transport: MockedTransport(), neverThrow: false }).call(),
-                /before threw/
-            );
+            const after = () => {
+                throw new Error("after threw");
+            };
 
-            MockedTransport = VoidClientTransport.methods({
-                after() {
-                    throw new Error("after threw");
-                },
-            });
-
-            await assert.rejects(
-                AllserverClient({ transport: MockedTransport(), neverThrow: false }).call(),
-                /after threw/
-            );
+            await assert.rejects(AllserverClient({ transport, neverThrow: false, after }).call(), /after threw/);
         });
 
         it("should not throw if neverThrow enabled (default behaviour)", async () => {
@@ -222,43 +212,36 @@ describe("AllserverClient", () => {
                         assert.deepStrictEqual(arg, { a: 1 });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
                     },
-                    before(ctx) {
-                        assert.strictEqual(ctx.procedureName, "getRates");
-                        assert.deepStrictEqual(ctx.arg, { a: 1 });
-                        beforeCalled = true;
-                    },
                 });
 
                 let beforeCalled = false;
-                const client = AllserverClient({
-                    transport: MockedTransport(),
-                });
+                const before = (ctx) => {
+                    assert.strictEqual(ctx.procedureName, "getRates");
+                    assert.deepStrictEqual(ctx.arg, { a: 1 });
+                    beforeCalled = true;
+                };
+
+                const client = AllserverClient({ transport: MockedTransport(), before });
                 const result = await client.getRates({ a: 1 });
                 assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
                 assert(beforeCalled);
             });
 
             it("should allow result override in 'before'", async () => {
-                const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        before() {
-                            return "Override result";
-                        },
-                    }),
-                });
+                const before = () => {
+                    return "Override result";
+                };
+                const client = AllserverClient({ transport: VoidClientTransport(), before });
                 const result = await client.foo();
                 assert.deepStrictEqual(result, "Override result");
             });
 
             it("should handle rejections from 'before'", async () => {
                 const err = new Error("'before' is throwing");
-                const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        before() {
-                            throw err;
-                        },
-                    }),
-                });
+                const before = () => {
+                    throw err;
+                };
+                const client = AllserverClient({ transport: VoidClientTransport(), before });
                 const result = await client.foo();
                 assert.deepStrictEqual(result, {
                     success: false,
@@ -271,13 +254,10 @@ describe("AllserverClient", () => {
             it("should override code if 'before' error has it", async () => {
                 const err = new Error("'before' is throwing");
                 err.code = "OVERRIDE_CODE";
-                const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        before() {
-                            throw err;
-                        },
-                    }),
-                });
+                const before = () => {
+                    throw err;
+                };
+                const client = AllserverClient({ transport: VoidClientTransport(), before });
                 const result = await client.foo();
                 assert.deepStrictEqual(result, {
                     success: false,
@@ -304,50 +284,41 @@ describe("AllserverClient", () => {
                         assert.deepStrictEqual(arg, { a: 1 });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
                     },
-
-                    after(ctx) {
-                        assert.strictEqual(ctx.procedureName, "getRates");
-                        assert.deepStrictEqual(ctx.arg, { a: 1 });
-                        assert.deepStrictEqual(ctx.result, {
-                            success: true,
-                            code: "CALLED",
-                            message: "A is good",
-                            b: 42,
-                        });
-                        afterCalled = true;
-                    },
                 });
 
                 let afterCalled = false;
-                const client = AllserverClient({
-                    transport: MockedTransport(),
-                });
+                const after = (ctx) => {
+                    assert.strictEqual(ctx.procedureName, "getRates");
+                    assert.deepStrictEqual(ctx.arg, { a: 1 });
+                    assert.deepStrictEqual(ctx.result, {
+                        success: true,
+                        code: "CALLED",
+                        message: "A is good",
+                        b: 42,
+                    });
+                    afterCalled = true;
+                };
+                const client = AllserverClient({ transport: MockedTransport(), after });
                 const result = await client.getRates({ a: 1 });
                 assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
                 assert(afterCalled);
             });
 
             it("should allow result override in 'after'", async () => {
-                const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        after() {
-                            return "Override result";
-                        },
-                    }),
-                });
+                const after = () => {
+                    return "Override result";
+                };
+                const client = AllserverClient({ transport: VoidClientTransport(), after });
                 const result = await client.foo();
                 assert.deepStrictEqual(result, "Override result");
             });
 
             it("should handle rejections from 'after'", async () => {
                 const err = new Error("'after' is throwing");
-                const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        after() {
-                            throw err;
-                        },
-                    }),
-                });
+                const after = () => {
+                    throw err;
+                };
+                const client = AllserverClient({ transport: VoidClientTransport(), after });
                 const result = await client.foo();
                 assert.deepStrictEqual(result, {
                     success: false,
@@ -360,13 +331,10 @@ describe("AllserverClient", () => {
             it("should override code if 'after' error has it", async () => {
                 const err = new Error("'after' is throwing");
                 err.code = "OVERRIDE_CODE";
-                const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        after() {
-                            throw err;
-                        },
-                    }),
-                });
+                const after = () => {
+                    throw err;
+                };
+                const client = AllserverClient({ transport: VoidClientTransport(), after });
                 const result = await client.foo();
                 assert.deepStrictEqual(result, {
                     success: false,
@@ -384,25 +352,24 @@ describe("AllserverClient", () => {
                 let secondAfterCalled = false;
                 const err = new Error("'before' is throwing");
                 const client = AllserverClient({
-                    transport: VoidClientTransport({
-                        before: [
-                            () => {
-                                throw err;
-                            },
-                            () => {
-                                secondBeforeCalled = true;
-                            },
-                        ],
-                        after: [
-                            (ctx) => {
-                                afterCalled = true;
-                                return ctx.result;
-                            },
-                            () => {
-                                secondAfterCalled = true;
-                            },
-                        ],
-                    }),
+                    transport: VoidClientTransport(),
+                    before: [
+                        () => {
+                            throw err;
+                        },
+                        () => {
+                            secondBeforeCalled = true;
+                        },
+                    ],
+                    after: [
+                        (ctx) => {
+                            afterCalled = true;
+                            return ctx.result;
+                        },
+                        () => {
+                            secondAfterCalled = true;
+                        },
+                    ],
                 });
                 const result = await client.foo();
                 assert(afterCalled);
