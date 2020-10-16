@@ -164,7 +164,7 @@ Or do gRPC requests using any module you like.
 
 (aka routes, aka schema, aka handlers, aka functions, aka methods)
 
-These are you business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service or expose via a GraphQL API.
+These are your business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service or expose via a GraphQL API.
 
 ```js
 const procedures = {
@@ -191,7 +191,7 @@ const procedures = {
     if (user.firstName === firstName && user.lastName === lastName) {
       return {
         success: true, // NOTE! We return TRUE here,
-        code: "NO_CHANGES", // but we also tell the client side code that nothing was changed.
+        code: "NO_CHANGES", // but we also tell the client side that nothing was changed.
         message: `User ${id} already have that data`,
       };
     }
@@ -313,8 +313,8 @@ Alternatively, you can call the same API using `GET` request with search params 
 const response = await axios.get("updateUser", {
   params: {
     id: "123412341234123412341234",
-    firstName,
-    lastName,
+    firstName: "Fred",
+    lastName: "Flinstone",
   },
 });
 ```
@@ -331,7 +331,9 @@ Note that we are reusing the `procedures` from the example above.
 
 Make sure all the methods in your `.proto` file reply at least three properties: `success, code, message`. Otherwise, the server won't start and will throw an error.
 
-Also, for now, you need to add these [mandatory declarations](https://github.com/flash-oss/allserver/blob/master/mandatory.proto) to your `.proto` file.
+Also, for now, you need to add [these](./mandatory.proto) mandatory declarations to your `.proto` file.
+
+Here is how your gRPC server can look like:
 
 ```js
 const { Allserver, GrpcTransport } = require("allserver");
@@ -339,7 +341,7 @@ const { Allserver, GrpcTransport } = require("allserver");
 Allserver({
   procedures,
   transport: GrpcTransport({
-    protoFile: __dirname + "/allserver_example.proto",
+    protoFile: __dirname + "/my-server.proto",
     port: 50051,
   }),
 }).start();
@@ -349,7 +351,7 @@ Allserver({
 
 #### Using built-in client
 
-Note, that this code is **same** as the HTTP client code example above!
+Note, that this code is **same** as the HTTP client code example above! The only difference is the URI.
 
 ```js
 const { AllserverClient } = require("allserver");
@@ -367,33 +369,12 @@ const { success, code, message, user } = await client.updateUser({
 
 The `protoFile` is automatically taken from the server side via the `introspect()` call.
 
-##### Providing proto file and/or credentials yourself
-
-```js
-const { AllserverClient, GrpcClientTransport } = require("allserver");
-// or
-const AllserverClient = require("allserver/Client");
-
-const client = AllserverClient({
-  transport: GrpcClientTransport({
-    uri: "grpc://localhost:50051",
-    protoFile: __dirname + "/my-proto-file.proto",
-    credentials: require("@grpc/grpc-js").credentials.createSsl(/* ... */),
-  }),
-});
-
-const { success, code, message, user } = await client.updateUser({
-  id: "123412341234123412341234",
-  firstName: "Fred",
-  lastName: "Flinstone",
-});
-```
 
 #### Using any gPRS client (official module in this example)
 
 ```js
 const packageDefinition = require("@grpc/proto-loader").loadSync(
-  __dirname + "/allserver_example.proto"
+  __dirname + "/my-server.proto"
 );
 
 const grpc = require("@grpc/grpc-js");
@@ -423,7 +404,7 @@ const { success, code, message, user } = data;
 1. Only [**unary**](https://grpc.io/docs/what-is-grpc/core-concepts/#unary-rpc) RPC. No streaming of any kind is available. By design.
 1. All the reply `message` definitions must have `bool success = 1; string code = 2; string message = 3;`. Otherwise, server won't start. By design.
 1. You can't have `import` statements in your `.proto` file. (Yet.)
-1. Your server-side `.proto` file must include Allserver's [mandatory declarations](https://github.com/flash-oss/allserver/blob/master/mandatory.proto). (Yet.)
+1. Your server-side `.proto` file must include Allserver's [mandatory declarations](./mandatory.proto). (Yet.)
 
 ## FAQ
 
@@ -449,7 +430,7 @@ If using `AllserverClient` you'll get this result, no exceptions thrown client-s
 {
   "success": false,
   "code": "ALLSERVER_PROCEDURE_NOT_FOUND",
-  "message": "Procedure not found: procedureName"
+  "message": "Procedure 'procedureName' not found"
 }
 ```
 
@@ -463,7 +444,7 @@ You'll get a normal reply, no exceptions thrown client-side, but the `success` f
 {
   "success": false,
   "code": "ALLSERVER_PROCEDURE_ERROR",
-  "message": "`'undefined' is not a function` in: procedureName"
+  "message": "''undefined' is not a function' error in 'procedureName' procedure"
 }
 ```
 
@@ -478,13 +459,11 @@ Allserver = Allserver.defaults({ logger: new MyShinyLogger() });
 const allserver = Allserver({ procedures });
 ```
 
-### Can I add a middleware?
+### Can I add a server middleware?
 
-You can add one or multiple pre-middlewares, as well as one or multiple post-middleware. Anything returned from a middleware (except the `undefined`) becomes the call result, and the rest of the middlewares will be skipped if any.
+You can add one or multiple pre-middlewares, as well as one or multiple post-middlewares. Anything returned from a middleware (except the `undefined`) becomes the call result, and the rest of the middlewares will be skipped if any.
 
 The `after` middleware(s) is always called.
-
-#### Server side
 
 ```js
 const allserver = Allserver({
@@ -513,24 +492,24 @@ const allserver = Allserver({
 });
 ```
 
-#### Client side
+### Can I add a client-side middleware?
+
+Yep. 
 
 ```js
-const { AllserverClient, HttpClientTransport } = require("allserver");
+const { AllserverClient } = require("allserver");
 
 const client = AllserverClient({
-  transport: AnyOfTheClientTransport({
-    uri: "whatever://my-server:4000",
+  uri: "http://example.com:4000",
 
-    async before(ctx) {
-      console.log(ctx.procedureName, ctx.arg);
-      // If you return anything from here, it will become the call result.
-    },
-    async after(ctx) {
-      console.log(ctx.result, ctx.error);
-      // If you return anything from here, it will become the call result.
-    },
-  }),
+  async before(ctx) {
+    console.log(ctx.procedureName, ctx.arg);
+    // If you return anything from here, it will become the call result.
+  },
+  async after(ctx) {
+    console.log(ctx.result, ctx.error);
+    // If you return anything from here, it will become the call result.
+  },
 });
 ```
 
@@ -567,7 +546,7 @@ const { AllserverClient, GrpcClientTransport } = require("allserver");
 const client = AllserverClient({
   transport: GrpcClientTransport({
     uri: "grpc://my-server:50051",
-    creadentials: require("@grpc/grpc-js").credentials.createSsl(/* ... */),
+    credentials: require("@grpc/grpc-js").credentials.createSsl(/* ... */),
   }),
 });
 ```
