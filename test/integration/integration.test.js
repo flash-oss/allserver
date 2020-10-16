@@ -59,11 +59,9 @@ async function callClientMethods(client) {
     }
 
     response = await client.throws({});
-    assert.deepStrictEqual(response, {
-        success: false,
-        code: "ALLSERVER_PROCEDURE_ERROR",
-        message: "'Cannot read property 'me' of undefined' error in 'throws' procedure",
-    });
+    assert.strictEqual(response.success, false);
+    assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
+    assert.strictEqual(response.message, "'Cannot read property 'me' of undefined' error in 'throws' procedure");
 
     response = await client.unexist({});
     assert.strictEqual(response.success, false);

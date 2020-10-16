@@ -74,6 +74,9 @@ module.exports = require("stampit")({
             return this.getProcedureName(ctx) === "";
         },
 
+        prepareProcedureErrorReply(ctx) {
+            ctx.lambda.statusCode = 500;
+        },
         prepareNotFoundReply(ctx) {
             ctx.lambda.statusCode = 404;
         },

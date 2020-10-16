@@ -72,6 +72,7 @@ module.exports = require("stampit")({
                     code: err.code || "ALLSERVER_PROCEDURE_ERROR",
                     message: `'${err.message}' error in '${ctx.procedureName}' procedure`,
                 };
+                await this.transport.prepareProcedureErrorReply(ctx);
                 return;
             }
 

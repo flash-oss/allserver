@@ -97,6 +97,7 @@ module.exports = require("stampit")({
         },
 
         prepareNotFoundReply(/* ctx */) {},
+        prepareProcedureErrorReply(/* ctx */) {},
         async prepareIntrospectionReply(ctx) {
             if (!this.protoFileContents) {
                 this.protoFileContents = this._fs.readFileSync(this.protoFile, "utf8");

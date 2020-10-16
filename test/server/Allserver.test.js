@@ -104,13 +104,6 @@ describe("Allserver", () => {
         it("should reply ALLSERVER_PROCEDURE_ERROR", async () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
-                prepareProcedureErrorReply(ctx) {
-                    ctx.result = {
-                        success: false,
-                        code: ctx.error.code || "ALLSERVER_PROCEDURE_ERROR",
-                        message: ctx.error.message,
-                    };
-                },
                 reply(ctx) {
                     assert.deepStrictEqual(ctx.result, {
                         success: false,

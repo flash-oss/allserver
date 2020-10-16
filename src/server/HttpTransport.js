@@ -68,6 +68,9 @@ module.exports = require("stampit")({
         prepareNotFoundReply(ctx) {
             ctx.http.statusCode = 404;
         },
+        prepareProcedureErrorReply(ctx) {
+            ctx.http.statusCode = 500;
+        },
         prepareIntrospectionReply(/* ctx */) {},
 
         reply(ctx) {
