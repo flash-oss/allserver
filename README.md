@@ -1,18 +1,29 @@
 # Allserver
 
-Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic.
+Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. DX-first.
 
 Think HTTP, gRPC, GraphQL, WebSockets, Lambda, inter-process, unix sockets, etc Remote Procedure Calls using exactly the same client and server code.
 
 Should be used in (micro)services where NodeJS is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
 
-Superpowers the Allserver gives you:
+Superpowers the `Allserver` gives you:
 
 - Call gRPC server methods from browser/curl/Postman.
-- Convert your HTTP server to gRPC with a single line change.
-- Call any transport/protocol server methods with exactly the same client-side code.
-- Stop writing `try-catch` when calling a remote procedure.
+- Run your HTTP server as gRPC with a single line change (almost).
+- Serve same logic via HTTP and gRPC (or more) simultaneously in the same node.js process.
+- Deploy and run your HTTP server on AWS Lambda with no code changes.
 - And moar!
+
+Superpowers the `AllserverClient` gives you:
+
+- (Optionally) Stop writing `try-catch` when calling a remote procedure.
+- Call remote procedures just like regular methods.
+- Call any transport/protocol server methods with exactly the same client-side code.
+- And moar!
+
+##### Spelling 
+
+"Allserver" is a single word, capital "A", lowercase "s".
 
 ### Quick example
 
@@ -27,7 +38,7 @@ const procedures = {
 require("allserver").Allserver({ procedures }).start();
 ```
 
-Client side:
+AllserverClient call:
 
 ```js
 const AllserverClient = require("allserver/Client");
@@ -44,7 +55,7 @@ if (success) {
 }
 ```
 
-Or use your own client library, e.g. `fetch` for HTTP or `@grpc/grpc-js` for gRPC.
+Or use your **own client library**, e.g. `fetch` for HTTP or `@grpc/grpc-js` for gRPC.
 
 ## Why Allserver exists?
 
@@ -59,13 +70,13 @@ Problems I had:
 - **The HTTP methods are a pain point of any REST API.**
   - Is it `POST` or `PUT` or `PATCH`? What if a route removes a permission to a file from a user, should it be `DELETE` or `POST`? I know it should be `POST`, but it's confusing to call `POST` when I need to REMOVE something. Protocol-level methods are never enough.
 - **The HTTP status codes are never enough and overly confusing.**
-  - If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the request is perfectly fine. It's the user state (data) is not fine.
+  - If a `user` record in the database is readonly, and you are trying to modify it, a typical server would reply `400 Bad Request`. However, the request, the user data, the system are all perfectly fine. The HTTP statuses were not designed for you business logic errors.
 - **The GraphQL has great DX and tooling, but it's not a good fit for microservices.**
-  - It adds too much complexity and is performance unfriendly (slow).
+  - It adds too much complexity and is performance unfriendly (slow). Allserver is about simplicity, not complexity.
 - **Performance scaling**
   - When a performance scaling was needed I had to rewrite an entire service and client source code in multiple projects to a more performant network protocol implementation. This was a significant and avoidable time waste in my opinion.
 - **HTTP monitoring tools show business errors as alarms.**
-  - I was trying to check if a user with email `bla@example.com` exists. REST reply is HTTP `404`. Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors with ease.
+  - I was trying to check if a user with email `bla@example.com` exists. REST reply was HTTP `404`. It alarmed our monitoring tools. Whereas, I don't want that alarm. That's not an error, but a regular true/false check. I want to monitor only the "route not found" errors with ease.
 
 When calling a remote procedure I want something which:
 
@@ -77,8 +88,8 @@ When calling a remote procedure I want something which:
 
 Also, the main driving force was my vast experience splitting monolith servers onto (micro)services. Here is how I do it with much success.
 
-- Firstly, I refactor a function to return object of the `{success,code,message,...}` shape, and to never throw.
-- Then, I move the function over to a microservice.
+- Firstly, refactor a function to return object of the `{success,code,message,...}` shape, and to never throw.
+- Then, move the function over to a microservice.
 - Done.
 
 Ideas are taken from multiple places.
@@ -90,7 +101,9 @@ Ideas are taken from multiple places.
 ## Core principles
 
 1. **Always choose DX (Developer Experience) over everything else**
-   - Otherwise, Allserver won't differ from all the other alternatives.
+   - Otherwise, Allserver won't differ from the alternatives.
+   - When newbie developer reads server-side code of an RPC (micro)service they should quickly understand what is what.
+   - Developers should call remote procedures as easy as regular method calls.
 1. **Switching between data protocols must be as easy as changing single config value**
    - Common example is when you want to convert your (micro)service from HTTP to gRPC.
    - Or if you want to call the gRPC server you are developing but don't have the gRPC client, so you use [Postman](https://www.postman.com/downloads/), `curl` or a browser (HTTP) for that.
@@ -100,7 +113,7 @@ Ideas are taken from multiple places.
    - Hence, the next core principle...
 1. **Exceptions should be never thrown**
    - The object of the following shape must always be returned: `success,code,message,...`.
-   - Although, this should be configurable (use `neverThrow: false`).
+   - Although, this should be configurable (see `neverThrow: false`).
 1. **Procedures (aka routes, aka methods, aka handlers) must always return same shaped interface regardless of everything**
    - This makes your (micro)service protocol agnostic.
    - HTTP server must always return `{success:Boolean, code:String, message:String}`.
@@ -115,6 +128,8 @@ Ideas are taken from multiple places.
    - This allows `AllserverClient` to know nothing about the remote server when your code starts to run.
 
 ## Usage
+
+Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is *optional*. See `optionalDependencies` in the [`package.json`](./package.json).
 
 ### HTTP protocol
 
@@ -135,6 +150,20 @@ npm i allserver node-fetch
 ```
 
 Or do HTTP requests using any module you like.
+
+### AWS Lambda
+
+#### Server
+
+No dependencies other than `allserver` itself.
+
+```shell script
+npm i allserver
+```
+
+#### Client
+
+Same as the HTTP protocol client above.
 
 ### gRPC protocol
 
@@ -369,7 +398,6 @@ const { success, code, message, user } = await client.updateUser({
 
 The `protoFile` is automatically taken from the server side via the `introspect()` call.
 
-
 #### Using any gPRS client (official module in this example)
 
 ```js
@@ -494,7 +522,7 @@ const allserver = Allserver({
 
 ### Can I add a client-side middleware?
 
-Yep. 
+Yep.
 
 ```js
 const { AllserverClient } = require("allserver");
