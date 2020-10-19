@@ -221,7 +221,6 @@ describe("AllserverClient", () => {
                     assert.deepStrictEqual(ctx.arg, { a: 1 });
                     beforeCalled = true;
                 }
-                Reflect;
 
                 const client = AllserverClient({ transport: MockedTransport(), before });
                 const result = await client.getRates({ a: 1 });
@@ -230,10 +229,16 @@ describe("AllserverClient", () => {
             });
 
             it("should allow result override in 'before'", async () => {
+                const DefaultedAllserverClient = AllserverClient.defaults({
+                    before() {
+                        assert.fail("Should not reach default middleware(s)");
+                    },
+                });
                 const before = () => {
                     return "Override result";
                 };
-                const client = AllserverClient({ transport: VoidClientTransport(), before });
+                const client = DefaultedAllserverClient({ transport: VoidClientTransport(), before });
+                assert.strictEqual(client[p].before.length, 2, "Default middleware should be present");
                 const result = await client.foo();
                 assert.deepStrictEqual(result, "Override result");
             });
@@ -308,10 +313,16 @@ describe("AllserverClient", () => {
             });
 
             it("should allow result override in 'after'", async () => {
+                const DefaultedAllserverClient = AllserverClient.defaults({
+                    after() {
+                        assert.fail("Should not reach default middleware(s)");
+                    },
+                });
                 const after = () => {
                     return "Override result";
                 };
-                const client = AllserverClient({ transport: VoidClientTransport(), after });
+                const client = DefaultedAllserverClient({ transport: VoidClientTransport(), after });
+                assert.strictEqual(client[p].after.length, 2, "Default middleware should be present");
                 const result = await client.foo();
                 assert.deepStrictEqual(result, "Override result");
             });

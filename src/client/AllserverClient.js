@@ -125,10 +125,10 @@ module.exports = require("stampit")({
             autoIntrospect: true,
             // Map/filter procedure names from server names to something else.
             nameMapper: null,
-            // 'before' middleware(s). Invoked before calling server procedure.
-            before: null,
-            // 'after' middleware(s). Invoked after calling server procedure.
-            after: null,
+            // 'before' middlewares. Invoked before calling server procedure.
+            before: [],
+            // 'after' middlewares. Invoked after calling server procedure.
+            after: [],
         },
     },
 
@@ -158,8 +158,8 @@ module.exports = require("stampit")({
             this[p].transport = transportConfig.Transport({ uri });
         }
 
-        this[p].before = before != null ? before : this[p].before;
-        this[p].after = after != null ? after : this[p].after;
+        if (before) this[p].before = [].concat(before).concat(this[p].before);
+        if (after) this[p].after = [].concat(after).concat(this[p].after);
     },
 
     methods: {
@@ -242,6 +242,8 @@ module.exports = require("stampit")({
 
     statics: {
         defaults({ transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after } = {}) {
+            if (before) before = [].concat(before);
+            if (after) after = [].concat(after);
             return this.deepProps({
                 [p]: { transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after },
             });
