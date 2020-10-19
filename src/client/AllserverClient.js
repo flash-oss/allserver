@@ -3,7 +3,7 @@ const { isString, isFunction, isObject } = require("../util");
 // Protected variables
 const p = Symbol.for("AllserverClient");
 
-function addProceduresToObject(allserverClient, procedures) {
+function addProceduresToObject(allserverClient, procedures, proxyClient) {
     let error;
     try {
         procedures = JSON.parse(procedures);
@@ -24,7 +24,7 @@ function addProceduresToObject(allserverClient, procedures) {
     for (let [procedureName, type] of Object.entries(procedures)) {
         if (nameMapper) procedureName = nameMapper(procedureName);
         if (!procedureName || type !== "function" || allserverClient[procedureName]) continue;
-        allserverClient[procedureName] = (...args) => allserverClient.call(procedureName, ...args);
+        allserverClient[procedureName] = (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
     }
     return { success: true };
 }
@@ -35,9 +35,9 @@ function proxyWrappingInitialiser() {
 
     // Wrapping our object instance.
     return new Proxy(this, {
-        get: function (allserverClient, procedureName, thisContext) {
+        get: function (allserverClient, procedureName, proxyClient) {
             if (procedureName in allserverClient) {
-                return Reflect.get(allserverClient, procedureName, thisContext);
+                return Reflect.get(allserverClient, procedureName, proxyClient);
             }
 
             // Method not found!
@@ -49,14 +49,14 @@ function proxyWrappingInitialiser() {
                 const introspectionResult = introspectionCache.get(uri);
                 if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
                     // Yeah. We already successfully introspected it.
-                    addProceduresToObject(allserverClient, introspectionResult.procedures);
+                    addProceduresToObject(allserverClient, introspectionResult.procedures, proxyClient);
                     if (procedureName in allserverClient) {
                         // The PREVIOUS auto introspection worked as expected. It added a method to the client object.
-                        return Reflect.get(allserverClient, procedureName, thisContext);
+                        return Reflect.get(allserverClient, procedureName, proxyClient);
                     } else {
                         // The method `name` was not present in the introspection, so let's call server side.
                         // 🤞
-                        return (...args) => allserverClient.call(procedureName, ...args);
+                        return (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
                     }
                 } else {
                     // Ok. Automatic introspection is necessary. Let's do it.
@@ -65,7 +65,11 @@ function proxyWrappingInitialiser() {
 
                         if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
                             // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
-                            const result = addProceduresToObject(allserverClient, introspectionResult.procedures);
+                            const result = addProceduresToObject(
+                                allserverClient,
+                                introspectionResult.procedures,
+                                proxyClient
+                            );
                             if (result.success) {
                                 introspectionCache.set(uri, introspectionResult);
                             } else {
@@ -77,7 +81,7 @@ function proxyWrappingInitialiser() {
                         if (procedureName in allserverClient) {
                             // This is the main happy path.
                             // The auto introspection worked as expected. It added a method to the client object.
-                            return Reflect.get(allserverClient, procedureName, thisContext)(...args);
+                            return Reflect.get(allserverClient, procedureName, proxyClient)(...args);
                         } else {
                             if (introspectionResult && introspectionResult.noNetToServer) {
                                 return {
@@ -88,19 +92,18 @@ function proxyWrappingInitialiser() {
                                     error: introspectionResult.error,
                                 };
                             } else {
-                                // Server is still reachable. It's just introspection didn't work.
-                                // The method `name` is not present in the introspection, so let's call server side.
+                                // Server is still reachable. It's just introspection didn't work, so let's call server side.
                                 // 🤞
-                                return allserverClient.call(procedureName, ...args);
+                                return allserverClient.call.call(proxyClient, procedureName, ...args);
                             }
                         }
                     };
                 }
             } else {
                 // Automatic introspection is disabled or impossible. Well... good luck. :)
-                // Most likely this call would be successful. Unless client and server are incompatible.
+                // Most likely this call would be successful. Unless client and server interfaces are incompatible.
                 // 🤞
-                return (...args) => allserverClient.call(procedureName, ...args);
+                return (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
             }
         },
     });
@@ -179,7 +182,7 @@ module.exports = require("stampit")({
             const middlewares = [].concat(this[p][middlewareType]).filter(isFunction);
             for (const middleware of middlewares) {
                 try {
-                    const result = await middleware(ctx);
+                    const result = await middleware.call(this, ctx);
                     if (result !== undefined) {
                         ctx.result = result;
                         break;

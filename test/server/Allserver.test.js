@@ -270,6 +270,7 @@ describe("Allserver", () => {
                 let called = false;
                 const server = Allserver({
                     before(ctx) {
+                        assert.strictEqual(this, server, "The `this` context must be the server itself");
                         assert.deepStrictEqual(ctx, {
                             callNumber: 0,
                             procedure: server.procedures.testMethod,
@@ -374,6 +375,7 @@ describe("Allserver", () => {
                 let called = false;
                 const server = Allserver({
                     after(ctx) {
+                        assert.strictEqual(this, server, "The `this` context must be the server itself");
                         assert.deepStrictEqual(ctx, {
                             callNumber: 0,
                             procedure: server.procedures.testMethod,

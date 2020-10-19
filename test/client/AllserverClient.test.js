@@ -215,11 +215,13 @@ describe("AllserverClient", () => {
                 });
 
                 let beforeCalled = false;
-                const before = (ctx) => {
+                function before(ctx) {
+                    assert.strictEqual(this, client, "The `this` context must be the client itself");
                     assert.strictEqual(ctx.procedureName, "getRates");
                     assert.deepStrictEqual(ctx.arg, { a: 1 });
                     beforeCalled = true;
-                };
+                }
+                Reflect;
 
                 const client = AllserverClient({ transport: MockedTransport(), before });
                 const result = await client.getRates({ a: 1 });
@@ -287,7 +289,8 @@ describe("AllserverClient", () => {
                 });
 
                 let afterCalled = false;
-                const after = (ctx) => {
+                function after(ctx) {
+                    assert.strictEqual(this, client, "The `this` context must be the client itself");
                     assert.strictEqual(ctx.procedureName, "getRates");
                     assert.deepStrictEqual(ctx.arg, { a: 1 });
                     assert.deepStrictEqual(ctx.result, {
@@ -297,7 +300,7 @@ describe("AllserverClient", () => {
                         b: 42,
                     });
                     afterCalled = true;
-                };
+                }
                 const client = AllserverClient({ transport: MockedTransport(), after });
                 const result = await client.getRates({ a: 1 });
                 assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });

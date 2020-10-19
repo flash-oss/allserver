@@ -96,7 +96,7 @@ module.exports = require("stampit")({
             const middlewares = [].concat(this[middlewareType]).filter(isFunction);
             for (const middleware of middlewares) {
                 try {
-                    const result = await middleware(ctx);
+                    const result = await middleware.call(this, ctx);
                     if (result !== undefined) {
                         ctx.result = result;
                         break;
