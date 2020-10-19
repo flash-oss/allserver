@@ -1,6 +1,6 @@
 {
   "name": "allserver",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic. DX-first.",
   "main": "src/index.js",
   "scripts": {
