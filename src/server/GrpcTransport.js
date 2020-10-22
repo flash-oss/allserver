@@ -1,6 +1,6 @@
 const { isPlainObject, isFunction } = require("../util");
 
-module.exports = require("stampit")({
+module.exports = require("./Transport").compose({
     name: "GrpcTransport",
 
     props: {
@@ -96,8 +96,6 @@ module.exports = require("stampit")({
             return this.getProcedureName(ctx) === "introspect";
         },
 
-        prepareNotFoundReply(/* ctx */) {},
-        prepareProcedureErrorReply(/* ctx */) {},
         async prepareIntrospectionReply(ctx) {
             if (!this.protoFileContents) {
                 this.protoFileContents = this._fs.readFileSync(this.protoFile, "utf8");

@@ -1,6 +1,6 @@
 const { parse: parseUrl, URLSearchParams } = require("url");
 
-module.exports = require("stampit")({
+module.exports = require("./Transport").compose({
     name: "HttpTransport",
 
     props: {
@@ -75,7 +75,6 @@ module.exports = require("stampit")({
             // nodejs assert() exception. In HTTP world this likely means 400 "Bad Request".
             if (ctx.error.code === "ERR_ASSERTION") ctx.http.statusCode = 400;
         },
-        prepareIntrospectionReply(/* ctx */) {},
 
         reply(ctx) {
             if (!ctx.http.statusCode) ctx.http.statusCode = 200;

@@ -1,4 +1,4 @@
-module.exports = require("stampit")({
+module.exports = require("./Transport").compose({
     name: "LambdaTransport",
 
     props: {
@@ -64,7 +64,6 @@ module.exports = require("stampit")({
                 });
             };
         },
-        stopServer() {},
 
         getProcedureName(ctx) {
             return ctx.lambda.path.substr(1);
@@ -75,12 +74,15 @@ module.exports = require("stampit")({
         },
 
         prepareProcedureErrorReply(ctx) {
+            // Generic exception.
             ctx.lambda.statusCode = 500;
+
+            // nodejs assert() exception. In HTTP world this likely means 400 "Bad Request".
+            if (ctx.error.code === "ERR_ASSERTION") ctx.lambda.statusCode = 400;
         },
         prepareNotFoundReply(ctx) {
             ctx.lambda.statusCode = 404;
         },
-        prepareIntrospectionReply(/* ctx */) {},
 
         reply(ctx) {
             if (!ctx.lambda.statusCode) ctx.lambda.statusCode = 200;

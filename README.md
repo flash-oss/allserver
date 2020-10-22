@@ -21,7 +21,7 @@ Superpowers the `AllserverClient` gives you:
 - Call any transport/protocol server methods with exactly the same client-side code.
 - And moar!
 
-##### Spelling 
+##### Spelling
 
 "Allserver" is a single word, capital "A", lowercase "s".
 
@@ -129,7 +129,7 @@ Ideas are taken from multiple places.
 
 ## Usage
 
-Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is *optional*. See `optionalDependencies` in the [`package.json`](./package.json).
+Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is _optional_. See `optionalDependencies` in the [`package.json`](./package.json).
 
 ### HTTP protocol
 
@@ -436,7 +436,7 @@ const { success, code, message, user } = data;
 
 ## FAQ
 
-### What happens if I call a procedure but remote server does not reply?
+### What happens if I call a procedure, but the remote server does not reply?
 
 If using `AllserverClient` you'll get this result, no exceptions thrown client-side by default:
 
@@ -581,33 +581,31 @@ const client = AllserverClient({
 
 ##### My authorisation is not supported. What should I do?
 
-If something more sophisticated is needed - the "Client Transport" can have `before` and `after` middleware(s) which run client-side.
+If something more sophisticated is needed - you can have `before` and `after` middleware(s) which run client-side.
 
 ```js
-const { AllserverClient, HttpClientTransport } = require("allserver");
+const { AllserverClient } = require("allserver");
 
 const client = AllserverClient({
-  transport: HttpClientTransport({
-    uri: "http://my-server:4000",
-    async before(ctx) {
-      console.log(ctx.procedureName, ctx.arg);
-      ctx.http.mode = "cors";
-      ctx.http.credentials = "include";
-      ctx.http.headers.authorization = "Basic my-token";
-    },
-    async after(ctx) {
-      if (ctx.error) console.error(ctx.error) else console.log(ctx.result);
-    },
-  }),
+  uri: "http://my-server:4000",
+  async before(ctx) {
+    console.log(ctx.procedureName, ctx.arg);
+    ctx.http.mode = "cors";
+    ctx.http.credentials = "include";
+    ctx.http.headers.authorization = "Basic my-token";
+  },
+  async after(ctx) {
+    if (ctx.error) console.error(ctx.error) else console.log(ctx.result);
+  },
 });
 ```
 
-Alternatively, you can "inherit" transports:
+Alternatively, you can "inherit" clients:
 
 ```js
-const { AllserverClient, HttpClientTransport } = require("allserver");
+const { AllserverClient } = require("allserver");
 
-const MyHttpTransportWithAuth = HttpClientTransport.methods({
+const MyAllserverClientWithAuth = AllserverClient.defaults({
   async before(ctx) {
     ctx.http.mode = "cors";
     ctx.http.credentials = "include";
@@ -615,9 +613,36 @@ const MyHttpTransportWithAuth = HttpClientTransport.methods({
   },
 });
 
-const client = AllserverClient({
-  transport: MyHttpTransportWithAuth({ uri: "http://my-server:4000" }),
+const client = MyAllserverClientWithAuth({
+  uri: "http://my-server:4000",
 });
+```
+
+### Can I override AllserverClient's method?
+
+Sure. This is useful if you need to add client-side logic before doing a remote call.
+
+```js
+const { AllserverClient } = require("allserver");
+const isEmail = require("is-email");
+
+const MyRpcClient = AllserverClient.methods({
+  async updateContact({ id, email }) {
+    if (!isEmail(email))
+      return {
+        success: false,
+        code: "BAD_EMAIL",
+        message: `${email} is not an email address`,
+      };
+
+    // Calling the server
+    return this.call("updateContact", { id, email });
+  },
+});
+
+const myRpcClient = MyRpcClient({ uri: anyKindOfSupportedUri });
+const { success } = await myRpcClient.updateContact({ id: 123, email: null });
+console.log(success); // false
 ```
 
 ### TypeScript support?
