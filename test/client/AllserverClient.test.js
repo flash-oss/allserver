@@ -10,10 +10,11 @@ const VoidClientTransport = require("../../src/client/ClientTransport").compose(
         createCallContext: (defaultCtx) => ({ ...defaultCtx, void: {} }),
     },
 });
-const AllserverClient = require("../../src").AllserverClient.deepConf({
-    transports: [{ schema: "void", Transport: VoidClientTransport }], // added one more known schema
+const AllserverClient = require("../../src").AllserverClient.addTransport({
+    schema: "void",
+    Transport: VoidClientTransport,
 });
-const p = Symbol.for("AllserverClient");
+const p = Symbol.for("AllserverClient"); // This would help us accessing protected properties.
 
 describe("AllserverClient", () => {
     afterEach(() => {
@@ -35,6 +36,11 @@ describe("AllserverClient", () => {
             assert(client[p].transport._fetch); // duck typing
         });
 
+        it("should work with https", () => {
+            const client = AllserverClient({ uri: "https://bla" });
+            assert(client[p].transport._fetch); // duck typing
+        });
+
         it("should work with grpc", () => {
             const client = AllserverClient({ uri: "grpc://bla" });
             assert(client[p].transport._grpc); // duck typing
@@ -43,6 +49,22 @@ describe("AllserverClient", () => {
         it("should work with third party added transports supported", () => {
             const client = AllserverClient({ uri: "void://bla" });
             assert.strictEqual(client[p].transport.uri, "void://bla");
+        });
+
+        it("should ignore case", () => {
+            const client = AllserverClient({ uri: "VOID://bla" });
+            assert.strictEqual(client[p].transport.uri, "VOID://bla");
+        });
+
+        it("should throw is schema is not supported", () => {
+            assert.throws(
+                () => AllserverClient({ uri: "no-schema-here" }),
+                /`uri` must follow pattern: SCHEMA:\/\/URI/
+            );
+        });
+
+        it("should throw is schema is not supported", () => {
+            assert.throws(() => AllserverClient({ uri: "unexist://bla" }), /Schema not supported: unexist:\/\/bla/);
         });
     });
 

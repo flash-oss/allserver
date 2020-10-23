@@ -134,10 +134,11 @@ module.exports = require("stampit")({
 
     deepConf: {
         // prettier-ignore
-        transports: [
-            { schema: "http", get Transport() { return require("./HttpClientTransport"); } },
-            { schema: "grpc", get Transport() { return require("./GrpcClientTransport"); } },
-        ],
+        transports: {
+            get http() { return require("./HttpClientTransport"); },
+            get https() { return require("./HttpClientTransport"); },
+            get grpc() { return require("./GrpcClientTransport"); },
+        },
     },
 
     init({ uri, transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after }, { stamp }) {
@@ -149,13 +150,12 @@ module.exports = require("stampit")({
         this[p].transport = transport || this[p].transport;
         if (!this[p].transport) {
             if (!isString(uri)) throw new Error("`uri` connection string is required");
+            const schema = uri.substr(0, uri.indexOf("://"));
+            if (!schema) throw new Error("`uri` must follow pattern: SCHEMA://URI");
+            const Transport = stamp.compose.deepConfiguration.transports[schema.toLowerCase()];
+            if (!Transport) throw new Error(`Schema not supported: ${uri}`);
 
-            const transportConfig = stamp.compose.deepConfiguration.transports.find(({ schema }) =>
-                uri.startsWith(schema)
-            );
-            if (!transportConfig) throw new Error(`Schema not supported: ${uri}`);
-
-            this[p].transport = transportConfig.Transport({ uri });
+            this[p].transport = Transport({ uri });
         }
 
         if (before) this[p].before = [].concat(before).concat(this[p].before);
@@ -263,6 +263,10 @@ module.exports = require("stampit")({
             return this.deepProps({
                 [p]: { transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after },
             });
+        },
+
+        addTransport({ schema, Transport }) {
+            return this.deepConf({ transports: { [schema.toLowerCase()]: Transport } });
         },
     },
 });
