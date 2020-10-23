@@ -80,7 +80,7 @@ Problems I had:
 
 When calling a remote procedure I want something which:
 
-- Does not throw exceptions client-side no matter what.
+- Does not throw exceptions client-side no matter what. **All** kinds of errors should be handled exactly the same way.
 - Can be easily mapped to any language, any protocol. Especially to upstream GraphQL mutations.
 - Is simple to read in the source code, just like a method/function call. Without thinking of protocol-level details for every damn call.
 - Allows me to test gRPC server from my browser/Postman/curl (via HTTP!) by a simple one line config change.
@@ -131,6 +131,8 @@ Ideas are taken from multiple places.
 
 Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is _optional_. See `optionalDependencies` in the [`package.json`](./package.json).
 
+To install `allserver` without the optional dependencies, please use `--no-optional` key.
+
 ### HTTP protocol
 
 #### Server
@@ -138,7 +140,7 @@ Please note, that Allserver depends only on a single tiny npm module [`stampit`]
 The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module as an optional dependency.
 
 ```shell script
-npm i allserver micro
+npm i allserver micro --no-optional
 ```
 
 #### Client
@@ -146,7 +148,7 @@ npm i allserver micro
 Optionally, you can use Allserver's built-in client:
 
 ```shell script
-npm i allserver node-fetch
+npm i allserver node-fetch --no-optional
 ```
 
 Or do HTTP requests using any module you like.
@@ -158,7 +160,7 @@ Or do HTTP requests using any module you like.
 No dependencies other than `allserver` itself.
 
 ```shell script
-npm i allserver
+npm i allserver --no-optional
 ```
 
 #### Client
@@ -172,7 +174,7 @@ Same as the HTTP protocol client above.
 The default `GrpcTransport` is using the standard the [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) npm module as an optional dependency.
 
 ```shell script
-npm i allserver @grpc/grpc-js @grpc/proto-loader
+npm i allserver @grpc/grpc-js @grpc/proto-loader --no-optional
 ```
 
 Note, with gRPC server and client you'd need to have your own `.proto` file. See code example below.
@@ -182,7 +184,7 @@ Note, with gRPC server and client you'd need to have your own `.proto` file. See
 Optionally, you can use Allserver's built-in client:
 
 ```shell script
-npm i allserver @grpc/grpc-js @grpc/proto-loader
+npm i allserver @grpc/grpc-js @grpc/proto-loader --no-optional
 ```
 
 Or do gRPC requests using any module you like.
@@ -299,7 +301,7 @@ exports = Allserver({
 You'd need to install `node-fetch` optional dependency.
 
 ```shell script
-npm i allserver node-fetch
+npm i allserver node-fetch --no-optional
 ```
 
 Note, that this code is **same** as the gRPC client code example below!
@@ -644,6 +646,8 @@ const myRpcClient = MyRpcClient({ uri: anyKindOfSupportedUri });
 const { success } = await myRpcClient.updateContact({ id: 123, email: null });
 console.log(success); // false
 ```
+
+Important note! **The code above does not require any special handling from you.** The `updateContact()` returns exactly the same interface as the remove server. This is one of the reasons why Allserver exists.
 
 ### TypeScript support?
 
