@@ -5,13 +5,14 @@ module.exports = require("./ClientTransport").compose({
 
     props: {
         // eslint-disable-next-line no-undef
-        _fetch: (typeof window !== "undefined" && window.fetch) || require("node-fetch"),
+        fetch: (typeof self !== "undefined" && self.fetch) || require("node-fetch"),
         headers: {},
     },
 
-    init({ headers }) {
+    init({ headers, fetch }) {
         if (!this.uri.endsWith("/")) this.uri += "/";
         if (isObject(headers)) this.headers = Object.assign(this.headers || {}, headers);
+        this.fetch = fetch || this.fetch;
     },
 
     methods: {
@@ -25,7 +26,7 @@ module.exports = require("./ClientTransport").compose({
 
             try {
                 if (http && http.body !== undefined && !isString(http.body)) http.body = JSON.stringify(http.body);
-                response = await this._fetch(this.uri + procedureName, http);
+                response = await this.fetch(this.uri + procedureName, http);
                 http.response = response;
             } catch (err) {
                 if (err.code === "ECONNREFUSED") err.noNetToServer = true;

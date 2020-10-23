@@ -43,12 +43,12 @@ describe("AllserverClient", () => {
 
         it("should work with http", () => {
             const client = AllserverClient({ uri: "http://bla" });
-            assert(client[p].transport._fetch); // duck typing
+            assert(client[p].transport.fetch); // duck typing
         });
 
         it("should work with https", () => {
             const client = AllserverClient({ uri: "https://bla" });
-            assert(client[p].transport._fetch); // duck typing
+            assert(client[p].transport.fetch); // duck typing
         });
 
         it("should work with grpc", () => {

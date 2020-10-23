@@ -19,11 +19,11 @@ describe("HttpClientTransport", () => {
         });
     });
 
-    describe("#cell", () => {
+    describe("#call", () => {
         it("should add response to context", async () => {
             const { Response } = require("node-fetch");
             const MockedTransport = HttpClientTransport.props({
-                async _fetch(uri, options) {
+                async fetch(uri, options) {
                     assert.strictEqual(uri, "http://localhost/");
                     assert.strictEqual(options.method, "POST");
                     const response = new Response();
