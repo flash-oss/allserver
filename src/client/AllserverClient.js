@@ -135,9 +135,9 @@ module.exports = require("stampit")({
     deepConf: {
         // prettier-ignore
         transports: {
-            get http() { return require("./HttpClientTransport"); },
-            get https() { return require("./HttpClientTransport"); },
-            get grpc() { return require("./GrpcClientTransport"); },
+            http() { return require("./HttpClientTransport"); },
+            https() { return require("./HttpClientTransport"); },
+            grpc() { return require("./GrpcClientTransport"); },
         },
     },
 
@@ -152,10 +152,10 @@ module.exports = require("stampit")({
             if (!isString(uri)) throw new Error("`uri` connection string is required");
             const schema = uri.substr(0, uri.indexOf("://"));
             if (!schema) throw new Error("`uri` must follow pattern: SCHEMA://URI");
-            const Transport = stamp.compose.deepConfiguration.transports[schema.toLowerCase()];
-            if (!Transport) throw new Error(`Schema not supported: ${uri}`);
+            const getTransport = stamp.compose.deepConfiguration.transports[schema.toLowerCase()];
+            if (!getTransport) throw new Error(`Schema not supported: ${uri}`);
 
-            this[p].transport = Transport({ uri });
+            this[p].transport = getTransport()({ uri });
         }
 
         if (before) this[p].before = [].concat(before).concat(this[p].before);
@@ -266,7 +266,7 @@ module.exports = require("stampit")({
         },
 
         addTransport({ schema, Transport }) {
-            return this.deepConf({ transports: { [schema.toLowerCase()]: Transport } });
+            return this.deepConf({ transports: { [schema.toLowerCase()]: () => Transport } });
         },
     },
 });

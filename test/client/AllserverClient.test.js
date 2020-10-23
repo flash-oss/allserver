@@ -22,6 +22,16 @@ describe("AllserverClient", () => {
         AllserverClient.compose.methods._introspectionCache = new Map();
     });
 
+    describe("#addTransport", () => {
+        it("should allow overwriting existing configured transports", () => {
+            const AC = require("../../src").AllserverClient;
+            AC.addTransport({
+                schema: "http",
+                Transport: VoidClientTransport,
+            });
+        });
+    });
+
     describe("#init", () => {
         it("should throw if no uri and no transport", () => {
             assert.throws(() => AllserverClient(), /uri/);
