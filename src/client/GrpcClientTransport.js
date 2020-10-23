@@ -43,7 +43,7 @@ module.exports = require("./ClientTransport").compose({
             return new Ctor(this.uri.substr(7), this._credentials);
         },
 
-        async introspect() {
+        async introspect(/* ctx */) {
             let result;
             try {
                 result = await new Promise((resolve, reject) =>
@@ -65,7 +65,7 @@ module.exports = require("./ClientTransport").compose({
                 // Writing to a temporary file because protoLoader.loadSync() supports files only.
                 const fileName = require("path").join(
                     require("os").tmpdir(),
-                    `grpc-client-${String(Math.random())}.proto`
+                    `grpc-client-${String(Math.random())}.proto` // The Math.random() does not repeat in billions attempts.
                 );
                 this._fs.writeFileSync(fileName, result.proto);
                 try {

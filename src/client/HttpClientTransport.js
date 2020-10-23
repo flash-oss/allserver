@@ -15,8 +15,9 @@ module.exports = require("./ClientTransport").compose({
     },
 
     methods: {
-        async introspect() {
-            return this.call(this.createCallContext({ procedureName: "" }));
+        async introspect(ctx) {
+            ctx.procedureName = "";
+            return this.call(ctx);
         },
 
         async call({ procedureName, http }) {

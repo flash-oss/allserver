@@ -195,11 +195,14 @@ describe("AllserverClient", () => {
         });
     });
 
-    describe("client transport middleware", () => {
+    describe("client middleware", () => {
         describe("'before'", () => {
             it("should call 'before'", async () => {
+                let introspected = false;
                 const MockedTransport = VoidClientTransport.methods({
-                    async introspect() {
+                    async introspect(ctx) {
+                        assert(ctx.isIntrospection);
+                        introspected = true;
                         return {
                             success: true,
                             code: "OK",
@@ -214,18 +217,23 @@ describe("AllserverClient", () => {
                     },
                 });
 
-                let beforeCalled = false;
+                let beforeCalled = 0;
                 function before(ctx) {
                     assert.strictEqual(this, client, "The `this` context must be the client itself");
-                    assert.strictEqual(ctx.procedureName, "getRates");
-                    assert.deepStrictEqual(ctx.arg, { a: 1 });
-                    beforeCalled = true;
+                    if (ctx.isIntrospection) {
+                        assert(!ctx.procedureName);
+                    } else {
+                        assert.strictEqual(ctx.procedureName, "getRates");
+                        assert.deepStrictEqual(ctx.arg, { a: 1 });
+                    }
+                    beforeCalled += 1;
                 }
 
                 const client = AllserverClient({ transport: MockedTransport(), before });
                 const result = await client.getRates({ a: 1 });
                 assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
-                assert(beforeCalled);
+                assert.strictEqual(beforeCalled, 2);
+                assert(introspected);
             });
 
             it("should allow result override in 'before'", async () => {
@@ -277,8 +285,11 @@ describe("AllserverClient", () => {
 
         describe("'after'", () => {
             it("should call 'after'", async () => {
+                let introspected = false;
                 const MockedTransport = VoidClientTransport.methods({
-                    async introspect() {
+                    async introspect(ctx) {
+                        assert(ctx.isIntrospection);
+                        introspected = true;
                         return {
                             success: true,
                             code: "OK",
@@ -293,23 +304,28 @@ describe("AllserverClient", () => {
                     },
                 });
 
-                let afterCalled = false;
+                let afterCalled = 0;
                 function after(ctx) {
                     assert.strictEqual(this, client, "The `this` context must be the client itself");
-                    assert.strictEqual(ctx.procedureName, "getRates");
-                    assert.deepStrictEqual(ctx.arg, { a: 1 });
-                    assert.deepStrictEqual(ctx.result, {
-                        success: true,
-                        code: "CALLED",
-                        message: "A is good",
-                        b: 42,
-                    });
-                    afterCalled = true;
+                    if (ctx.isIntrospection) {
+                        assert(!ctx.procedureName);
+                    } else {
+                        assert.strictEqual(ctx.procedureName, "getRates");
+                        assert.deepStrictEqual(ctx.arg, { a: 1 });
+                        assert.deepStrictEqual(ctx.result, {
+                            success: true,
+                            code: "CALLED",
+                            message: "A is good",
+                            b: 42,
+                        });
+                    }
+                    afterCalled += 1;
                 }
                 const client = AllserverClient({ transport: MockedTransport(), after });
                 const result = await client.getRates({ a: 1 });
                 assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
-                assert(afterCalled);
+                assert.strictEqual(afterCalled, 2);
+                assert(introspected);
             });
 
             it("should allow result override in 'after'", async () => {

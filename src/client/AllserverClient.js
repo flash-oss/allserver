@@ -61,7 +61,7 @@ function proxyWrappingInitialiser() {
                 } else {
                     // Ok. Automatic introspection is necessary. Let's do it.
                     return async (...args) => {
-                        const introspectionResult = await allserverClient.introspect();
+                        const introspectionResult = await allserverClient.introspect.call(proxyClient);
 
                         if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
                             // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
@@ -164,18 +164,34 @@ module.exports = require("stampit")({
 
     methods: {
         async introspect() {
-            // This is supposed to be executed only once (per uri) unless it throws.
-            // There are only 3 situations when this throws:
-            // * the "introspect" method not found on server,
-            // * the network request is malformed,
-            // * couldn't connect to the remote host.
-            return Promise.resolve(this[p].transport.introspect()).catch((err) => ({
-                success: false,
-                code: "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
-                message: `Couldn't introspect ${this[p].transport.uri}`,
-                noNetToServer: Boolean(err.noNetToServer),
-                error: err,
-            }));
+            const transport = this[p].transport;
+            const defaultCtx = { client: this, isIntrospection: true };
+            const ctx = transport.createCallContext(defaultCtx);
+
+            await this._callMiddlewares(ctx, "before");
+
+            if (!ctx.result) {
+                try {
+                    // This is supposed to be executed only once (per uri) unless it throws.
+                    // There are only 3 situations when this throws:
+                    // * the "introspect" method not found on server,
+                    // * the network request is malformed,
+                    // * couldn't connect to the remote host.
+                    ctx.result = await transport.introspect(ctx);
+                } catch (err) {
+                    ctx.result = {
+                        success: false,
+                        code: "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
+                        message: `Couldn't introspect ${transport.uri}`,
+                        noNetToServer: Boolean(err.noNetToServer),
+                        error: err,
+                    };
+                }
+            }
+
+            await this._callMiddlewares(ctx, "after");
+
+            return ctx.result;
         },
 
         async _callMiddlewares(ctx, middlewareType) {
