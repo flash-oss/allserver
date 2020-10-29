@@ -95,7 +95,7 @@ describe("AllserverClient", () => {
             const MockedTransport = VoidClientTransport.methods({
                 introspect: () => ({
                     success: true,
-                    code: "OK",
+                    code: "ALLSERVER_INTROSPECTION",
                     message: "Introspection as JSON string",
                     procedures: "bad food",
                 }),
@@ -112,7 +112,7 @@ describe("AllserverClient", () => {
             const MockedTransport = VoidClientTransport.methods({
                 introspect: () => ({
                     success: true,
-                    code: "OK",
+                    code: "ALLSERVER_INTROSPECTION",
                     message: "Introspection as JSON string",
                     procedures: "42",
                 }),

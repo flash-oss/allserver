@@ -43,7 +43,7 @@ module.exports = require("stampit")({
 
             ctx.result = {
                 success: true,
-                code: "OK",
+                code: "ALLSERVER_INTROSPECTION",
                 message: "Introspection as JSON string",
                 procedures: JSON.stringify(ctx.introspection),
             };

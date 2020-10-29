@@ -243,7 +243,7 @@ describe("Allserver", () => {
                 prepareIntrospectionReply(ctx) {
                     ctx.result = {
                         success: true,
-                        code: "OK",
+                        code: "ALLSERVER_INTROSPECTION",
                         message: "Introspection as JSON string",
                         procedures: ctx.introspection,
                     };

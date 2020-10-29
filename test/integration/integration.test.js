@@ -54,7 +54,7 @@ async function callClientMethods(client) {
     // Introspection should be back working
     response = await client.introspect();
     assert.strictEqual(response.success, true);
-    assert.strictEqual(response.code, "OK");
+    assert.strictEqual(response.code, "ALLSERVER_INTROSPECTION");
 
     for (const number of [0, 1, 2, 3]) {
         response = await client.gate({ number });
