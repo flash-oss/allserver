@@ -4,7 +4,7 @@ Multi-transport and multi-protocol simple RPC server and (optional) client. Boil
 
 Think HTTP, gRPC, GraphQL, WebSockets, Lambda, inter-process, unix sockets, etc Remote Procedure Calls using exactly the same client and server code.
 
-Should be used in (micro)services where NodeJS is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, you name it.
+Should be used in (micro)services where JavaScript is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, SharedWorker, thread, you name it.
 
 Superpowers the `Allserver` gives you:
 
@@ -103,7 +103,6 @@ Ideas are taken from multiple places.
 1. **Always choose DX (Developer Experience) over everything else**
    - Otherwise, Allserver won't differ from the alternatives.
    - When newbie developer reads server-side code of an RPC (micro)service they should quickly understand what is what.
-   - Developers should call remote procedures as easy as regular method calls.
 1. **Switching between data protocols must be as easy as changing single config value**
    - Common example is when you want to convert your (micro)service from HTTP to gRPC.
    - Or if you want to call the gRPC server you are developing but don't have the gRPC client, so you use [Postman](https://www.postman.com/downloads/), `curl` or a browser (HTTP) for that.
@@ -118,11 +117,12 @@ Ideas are taken from multiple places.
    - This makes your (micro)service protocol agnostic.
    - HTTP server must always return `{success:Boolean, code:String, message:String}`.
    - Same for gRPC - `message Reply { bool success = 1; string code = 2; string message = 3; }`.
-   - Same for other protocols.
+   - Same for GraphQL - `interface IAllserverReply { success:Boolean! code:String message:String }`
+   - Same for other protocols/languages.
 1. **Protocol-level things must NOT be used for business-level logic (i.e. no REST)**
    - This makes your (micro)service protocol agnostic.
    - E.g. the HTTP status codes must be used for protocol-level errors only.
-1. **All procedures must accept single argument - JavaScript options object**
+1. **All procedures must accept single argument - JSON options object**
    - This makes your (micro)service protocol agnostic.
 1. **Procedures introspection (aka programmatic discovery) should work out of the box**
    - This allows `AllserverClient` to know nothing about the remote server when your code starts to run.
@@ -131,7 +131,7 @@ Ideas are taken from multiple places.
 
 Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is _optional_. See `optionalDependencies` in the [`package.json`](./package.json).
 
-To install `allserver` without the optional dependencies, please use `--no-optional` key.
+To install `allserver` without the optional dependencies, please use `--no-optional` parameter.
 
 ### HTTP protocol
 
@@ -195,7 +195,7 @@ Or do gRPC requests using any module you like.
 
 (aka routes, aka schema, aka handlers, aka functions, aka methods)
 
-These are your business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service or expose via a GraphQL API.
+These are your business logic functions. They are exactly the same for all the network protocols out there. They wouldn't need to change if you suddenly need to move them to another (micro)service, protocol, network transport, or expose via a GraphQL API.
 
 ```js
 const procedures = {
@@ -227,7 +227,10 @@ const procedures = {
       };
     }
 
-    await user.update({ firstName, lastName });
+    user.firstName = firstName;
+    user.lastName = lastName;
+    await user.save();
+
     return { success: true, code: "UPDATED", user };
   },
 
@@ -648,6 +651,32 @@ console.log(success); // false
 ```
 
 Important note! **The code above does not require any special handling from you.** The `updateContact()` returns exactly the same interface as the remove server. This is one of the reasons why Allserver exists.
+
+### Why `success,code,message`? I want different names.
+
+* `success` is a generic "all good" / "error happened" reply. Occasionally, you can't determine if it's success or a failure. E.g. if a user tries to unsubscribe from a mailing list, but there is no such user in the list. That's why we have `code`.
+* `code` is a hardcoded string for machines. Use it in the source code `if` statements.
+* `message` is an arbitrary string for humans. Use it as an error/success message on a UI. 
+
+I considered using `ok` instead of `success`, but Allserver is DX-first. The `ok` can be confused with the `fetch` API `Response.ok` property: `if ((await fetch(uri)).ok)`, we don't want that. Also, the `ok` is not a noun, thus complicates code reading a bit for newbie developers. 
+
+The only mandatory property of the three is `success`. The `code` and `message` are optional. So, you can have different names. Add them to your returned object. Just don't forget to add `success:Boolean` property.
+
+In the example below we mimic Slack's RPC. They use `ok` and `error` properties similar or Allserver's `success` and `message` properties. 
+
+```js
+const procedures = {
+  async sendChatMessage({ channel = "#general", message = "" }) {
+    try {
+      await sns.sendMessage(/* ... */);
+      return { success: true, ok: true };
+    } catch (err) {
+      return { success: false, ok: false, error: err.message, status: 50014 };    
+    }
+  }
+}
+```
+
 
 ### TypeScript support?
 
