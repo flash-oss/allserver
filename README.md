@@ -129,9 +129,7 @@ Ideas are taken from multiple places.
 
 ## Usage
 
-Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is _optional_. See `optionalDependencies` in the [`package.json`](./package.json).
-
-To install `allserver` without the optional dependencies, please use `--no-optional` parameter.
+Please note, that Allserver depends only on a single tiny npm module [`stampit`](https://stampit.js.org). Every other dependency is _optional_.
 
 ### HTTP protocol
 
@@ -140,7 +138,7 @@ To install `allserver` without the optional dependencies, please use `--no-optio
 The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module as an optional dependency.
 
 ```shell script
-npm i allserver micro --no-optional
+npm i allserver micro
 ```
 
 #### Client
@@ -148,7 +146,7 @@ npm i allserver micro --no-optional
 Optionally, you can use Allserver's built-in client:
 
 ```shell script
-npm i allserver node-fetch --no-optional
+npm i allserver node-fetch
 ```
 
 Or do HTTP requests using any module you like.
@@ -160,7 +158,7 @@ Or do HTTP requests using any module you like.
 No dependencies other than `allserver` itself.
 
 ```shell script
-npm i allserver --no-optional
+npm i allserver
 ```
 
 #### Client
@@ -174,7 +172,7 @@ Same as the HTTP protocol client above.
 The default `GrpcTransport` is using the standard the [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) npm module as an optional dependency.
 
 ```shell script
-npm i allserver @grpc/grpc-js @grpc/proto-loader --no-optional
+npm i allserver @grpc/grpc-js@1 @grpc/proto-loader@0.5
 ```
 
 Note, with gRPC server and client you'd need to have your own `.proto` file. See code example below.
@@ -184,7 +182,7 @@ Note, with gRPC server and client you'd need to have your own `.proto` file. See
 Optionally, you can use Allserver's built-in client:
 
 ```shell script
-npm i allserver @grpc/grpc-js @grpc/proto-loader --no-optional
+npm i allserver @grpc/grpc-js@1 @grpc/proto-loader@0.5
 ```
 
 Or do gRPC requests using any module you like.
@@ -304,7 +302,7 @@ exports = Allserver({
 You'd need to install `node-fetch` optional dependency.
 
 ```shell script
-npm i allserver node-fetch --no-optional
+npm i allserver node-fetch
 ```
 
 Note, that this code is **same** as the gRPC client code example below!
