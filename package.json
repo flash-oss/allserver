@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint ./",
     "test": "mocha",
-    "cov": "nyc npm run test"
+    "cov": "nyc --reporter=html npm run test"
   },
   "keywords": [
     "http",

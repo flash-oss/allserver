@@ -42,7 +42,7 @@ describe("AllserverClient", () => {
         });
 
         it("should work with http", () => {
-            const client = AllserverClient({ uri: "http://bla" });
+            const client = AllserverClient({ uri: "http://bla/" });
             assert(client[p].transport.fetch); // duck typing
         });
 
