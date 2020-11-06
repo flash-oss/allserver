@@ -21,9 +21,9 @@ Superpowers the `AllserverClient` gives you:
 - Call any transport/protocol server methods with exactly the same client-side code.
 - And moar!
 
-<center>
+<p align="center">
   <img alt='Evan You quote about "bad" ideas' src="https://github.com/flash-oss/allserver/raw/media/quote1.jpg" width="400">
-</center>
+</p>
 
 ##### Spelling
 
