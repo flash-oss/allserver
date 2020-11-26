@@ -105,11 +105,22 @@ function proxyWrappingInitialiser() {
                         };
                     } else {
                         if (allserverClient[p].callIntrospectedProceduresOnly) {
-                            return {
-                                success: false,
-                                code: "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND",
-                                message: `Procedure '${procedureName}' not found via introspection`,
-                            };
+                            if (!introspectionResult || !introspectionResult.success) {
+                                const ir = introspectionResult || {};
+                                return {
+                                    ...ir, // we need to leave original data if there was any.
+                                    success: false,
+                                    code: ir.code || "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
+                                    message:
+                                        ir.message || `Can't call '${procedureName}' procedure, introspection failed`,
+                                };
+                            } else {
+                                return {
+                                    success: false,
+                                    code: "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND",
+                                    message: `Procedure '${procedureName}' not found via introspection`,
+                                };
+                            }
                         }
 
                         // Server is still reachable. It's just introspection didn't work, so let's call server side.

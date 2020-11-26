@@ -628,6 +628,36 @@ describe("AllserverClient", () => {
                 })
                 .catch(done);
         });
+
+        it("should return original error if introspection fails", (done) => {
+            const error = new Error("My error");
+            const MockedTransport = VoidClientTransport.methods({
+                async introspect() {
+                    return { success: false, code: "SOME_ERROR", message: "My message", error };
+                },
+                async call() {
+                    done(new Error("Must not attempt calling procedures"));
+                },
+            });
+
+            const client = AllserverClient({
+                transport: MockedTransport({ uri: "void://very-unique-address-3" }),
+            });
+            assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it
+            client
+                .foo({ a: 1 })
+                .then((result) => {
+                    assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
+                    assert.deepStrictEqual(result, {
+                        success: false,
+                        code: "SOME_ERROR",
+                        message: "My message",
+                        error,
+                    });
+                    done();
+                })
+                .catch(done);
+        });
     });
 
     describe("#defaults", () => {
