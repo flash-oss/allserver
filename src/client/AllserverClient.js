@@ -13,16 +13,16 @@ function addProceduresToObject(allserverClient, procedures, proxyClient) {
     if (error || !isObject(procedures)) {
         const result = {
             success: false,
-            code: "ALLSERVER_MALFORMED_INTROSPECTION",
+            code: "ALLSERVER_CLIENT_MALFORMED_INTROSPECTION",
             message: `Malformed introspection from ${allserverClient[p].transport.uri}`,
         };
         if (error) result.error = error;
         return result;
     }
 
-    const nameMapper = isFunction(allserverClient[p].nameMapper) ? allserverClient[p].nameMapper : null;
+    const nameMapper = isFunction(allserverClient[p].nameMapper) ? allserverClient[p].nameMapper : (n) => n;
     for (let [procedureName, type] of Object.entries(procedures)) {
-        if (nameMapper) procedureName = nameMapper(procedureName);
+        procedureName = nameMapper(procedureName);
         if (!procedureName || type !== "function" || allserverClient[procedureName]) continue;
         allserverClient[procedureName] = (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
     }
@@ -43,68 +43,81 @@ function proxyWrappingInitialiser() {
             // Method not found!
             // Checking if automatic introspection is disabled or impossible.
             const uri = allserverClient[p].transport.uri;
-            if (allserverClient[p].autoIntrospect && uri) {
-                const introspectionCache = allserverClient.__proto__._introspectionCache;
-                // Let's see if we already introspected that server.
-                const introspectionResult = introspectionCache.get(uri);
-                if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
-                    // Yeah. We already successfully introspected it.
-                    addProceduresToObject(allserverClient, introspectionResult.procedures, proxyClient);
-                    if (procedureName in allserverClient) {
-                        // The PREVIOUS auto introspection worked as expected. It added a method to the client object.
-                        return Reflect.get(allserverClient, procedureName, proxyClient);
-                    } else {
-                        // The method `name` was not present in the introspection, so let's call server side.
-                        // 🤞
-                        return (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
-                    }
-                } else {
-                    // Ok. Automatic introspection is necessary. Let's do it.
-                    return async (...args) => {
-                        const introspectionResult = await allserverClient.introspect.call(proxyClient);
-
-                        if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
-                            // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
-                            const result = addProceduresToObject(
-                                allserverClient,
-                                introspectionResult.procedures,
-                                proxyClient
-                            );
-                            if (result.success) {
-                                introspectionCache.set(uri, introspectionResult);
-                            } else {
-                                // Couldn't apply introspection to the client object.
-                                return result;
-                            }
-                        }
-
-                        if (procedureName in allserverClient) {
-                            // This is the main happy path.
-                            // The auto introspection worked as expected. It added a method to the client object.
-                            return Reflect.get(allserverClient, procedureName, proxyClient)(...args);
-                        } else {
-                            if (introspectionResult && introspectionResult.noNetToServer) {
-                                return {
-                                    success: false,
-                                    code: "ALLSERVER_PROCEDURE_UNREACHABLE",
-                                    message: `Couldn't reach remote procedure: ${procedureName}`,
-                                    noNetToServer: introspectionResult.noNetToServer,
-                                    error: introspectionResult.error,
-                                };
-                            } else {
-                                // Server is still reachable. It's just introspection didn't work, so let's call server side.
-                                // 🤞
-                                return allserverClient.call.call(proxyClient, procedureName, ...args);
-                            }
-                        }
-                    };
-                }
-            } else {
+            if (!allserverClient[p].autoIntrospect || !uri) {
                 // Automatic introspection is disabled or impossible. Well... good luck. :)
                 // Most likely this call would be successful. Unless client and server interfaces are incompatible.
                 // 🤞
                 return (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
             }
+
+            const introspectionCache = allserverClient.__proto__._introspectionCache;
+            // Let's see if we already introspected that server.
+            const introspectionResult = introspectionCache.get(uri);
+            if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
+                // Yeah. We already successfully introspected it.
+                addProceduresToObject(allserverClient, introspectionResult.procedures, proxyClient);
+                if (procedureName in allserverClient) {
+                    // The PREVIOUS auto introspection worked as expected. It added a method to the client object.
+                    return Reflect.get(allserverClient, procedureName, proxyClient);
+                } else {
+                    if (allserverClient[p].callIntrospectedProceduresOnly) {
+                        return () => ({
+                            success: false,
+                            code: "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND",
+                            message: `Procedure '${procedureName}' not found via introspection`,
+                        });
+                    }
+
+                    // The method `name` was not present in the introspection, so let's call server side.
+                    // 🤞
+                    return (...args) => allserverClient.call.call(proxyClient, procedureName, ...args);
+                }
+            }
+
+            // Ok. Automatic introspection is necessary. Let's do it.
+            return async (...args) => {
+                const introspectionResult = await allserverClient.introspect.call(proxyClient);
+
+                if (introspectionResult && introspectionResult.success && introspectionResult.procedures) {
+                    // The automatic introspection won't be executed if you create a second instance of the AllserverClient with the same URI! :)
+                    const result = addProceduresToObject(allserverClient, introspectionResult.procedures, proxyClient);
+                    if (result.success) {
+                        // Do not cache unsuccessful introspections
+                        introspectionCache.set(uri, introspectionResult);
+                    } else {
+                        // Couldn't apply introspection to the client object.
+                        return result;
+                    }
+                }
+
+                if (procedureName in allserverClient) {
+                    // This is the main happy path.
+                    // The auto introspection worked as expected. It added a method to the client object.
+                    return Reflect.get(allserverClient, procedureName, proxyClient)(...args);
+                } else {
+                    if (introspectionResult && introspectionResult.noNetToServer) {
+                        return {
+                            success: false,
+                            code: "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE",
+                            message: `Couldn't reach remote procedure: ${procedureName}`,
+                            noNetToServer: introspectionResult.noNetToServer,
+                            error: introspectionResult.error,
+                        };
+                    } else {
+                        if (allserverClient[p].callIntrospectedProceduresOnly) {
+                            return {
+                                success: false,
+                                code: "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND",
+                                message: `Procedure '${procedureName}' not found via introspection`,
+                            };
+                        }
+
+                        // Server is still reachable. It's just introspection didn't work, so let's call server side.
+                        // 🤞
+                        return allserverClient.call.call(proxyClient, procedureName, ...args);
+                    }
+                }
+            };
         },
     });
 }
@@ -117,12 +130,14 @@ module.exports = require("stampit")({
         [p]: {
             // The protocol implementation strategy.
             transport: null,
-            // Disable any exception throwing when calling any methods. Otherwise, throws on "not found" and "can't reach server".
+            // Disable any exception throwing when calling any methods. Otherwise, throws network and server errors.
             neverThrow: true,
-            // Automatically call corresponding remote procedure, even if such method does not exist on this client object.
+            // Automatically find (introspect) and call corresponding remote procedures. Use only the methods defined in client side.
             dynamicMethods: true,
             // Try automatically fetch and assign methods to this client object.
             autoIntrospect: true,
+            // If introspection couldn't find that procedure do not attempt sending a "call of faith" to the server.
+            callIntrospectedProceduresOnly: true,
             // Map/filter procedure names from server names to something else.
             nameMapper: null,
             // 'before' middlewares. Invoked before calling server procedure.
@@ -141,10 +156,27 @@ module.exports = require("stampit")({
         },
     },
 
-    init({ uri, transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after }, { stamp }) {
+    init(
+        {
+            uri,
+            transport,
+            neverThrow,
+            dynamicMethods,
+            autoIntrospect,
+            callIntrospectedProceduresOnly,
+            nameMapper,
+            before,
+            after,
+        },
+        { stamp }
+    ) {
         this[p].neverThrow = neverThrow != null ? neverThrow : this[p].neverThrow;
         this[p].dynamicMethods = dynamicMethods != null ? dynamicMethods : this[p].dynamicMethods;
         this[p].autoIntrospect = autoIntrospect != null ? autoIntrospect : this[p].autoIntrospect;
+        this[p].callIntrospectedProceduresOnly =
+            callIntrospectedProceduresOnly != null
+                ? callIntrospectedProceduresOnly
+                : this[p].callIntrospectedProceduresOnly;
         this[p].nameMapper = nameMapper != null ? nameMapper : this[p].nameMapper;
 
         this[p].transport = transport || this[p].transport;
@@ -232,7 +264,7 @@ module.exports = require("stampit")({
 
                     let { code, message } = err;
                     if (!err.code || err.noNetToServer) {
-                        code = "ALLSERVER_PROCEDURE_UNREACHABLE";
+                        code = "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE";
                         message = `Couldn't reach remote procedure: ${ctx.procedureName}`;
                     }
                     ctx.result = { success: false, code, message, error: err };
@@ -257,11 +289,29 @@ module.exports = require("stampit")({
     },
 
     statics: {
-        defaults({ transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after } = {}) {
+        defaults({
+            transport,
+            neverThrow,
+            dynamicMethods,
+            autoIntrospect,
+            callIntrospectedProceduresOnly,
+            nameMapper,
+            before,
+            after,
+        } = {}) {
             if (before) before = [].concat(before);
             if (after) after = [].concat(after);
             return this.deepProps({
-                [p]: { transport, neverThrow, dynamicMethods, autoIntrospect, nameMapper, before, after },
+                [p]: {
+                    transport,
+                    neverThrow,
+                    dynamicMethods,
+                    callIntrospectedProceduresOnly,
+                    autoIntrospect,
+                    nameMapper,
+                    before,
+                    after,
+                },
             });
         },
 

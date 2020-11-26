@@ -73,8 +73,8 @@ async function callClientMethods(client) {
 
     response = await client.unexist({});
     assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
-    assert.strictEqual(response.message, "Procedure 'unexist' not found");
+    assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
+    assert.strictEqual(response.message, "Procedure 'unexist' not found via introspection");
 }
 
 let {
@@ -99,7 +99,7 @@ describe("integration", function () {
             let response;
             response = await httpClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
             assert(response.error.message.includes("ECONNREFUSED"));
 
@@ -117,8 +117,7 @@ describe("integration", function () {
 
             // Should return 404
             response = await httpClient.unexist();
-            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_NOT_FOUND");
-            assert.strictEqual(response.error.status, 404);
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
 
             // Should return 500
             response = await httpClient.throws();
@@ -177,7 +176,7 @@ describe("integration", function () {
             });
             response = await grpcClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
 
             // Without protoFile
@@ -187,7 +186,7 @@ describe("integration", function () {
 
             response = await grpcClient.sayHello({ name: "world" });
             assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_UNREACHABLE");
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
 
             const grpcServer = Allserver({

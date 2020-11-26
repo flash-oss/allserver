@@ -54,7 +54,7 @@ if (success) {
   // "Hello Joe"
   console.log(sayHello);
 } else {
-  // something like "ALLSERVER_PROCEDURE_UNREACHABLE"
+  // something like "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE"
   console.error(code);
 }
 ```
@@ -441,6 +441,57 @@ const { success, code, message, user } = data;
 1. You can't have `import` statements in your `.proto` file. (Yet.)
 1. Your server-side `.proto` file must include Allserver's [mandatory declarations](./mandatory.proto). (Yet.)
 
+## `AllserverClient` options
+
+**All the arguments are optional.** But either `uri` or `transport` must be provided. We are trying to keep the highest possible DX here.
+
+- `uri`<br>
+The remote server address string. Out of box supported schemas are: `http`, `https`, `grpc`. (More to come.)
+
+- `transport`<br>
+The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https:/` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used.
+
+- `neverThrow=true`<br>
+Set it to `false` if you want to get exceptions when there are a network, or a server errors during a procedure call. Otherwise, the standard `{success,code,message}` object is returned from method calls. The Allserver error `code`s are always start with `"ALLSERVER_"`. E.g. `"ALLSERVER_CLIENT_MALFORMED_INTROSPECTION"`.
+
+- `dynamicMethods=true`<br>
+Automatically find (introspect) and call corresponding remote procedures. If set to `false` the `AllserverClient` would use only the `methods` you defined explicitly client-side.
+
+- `autoIntrospect=true`<br>
+Do not automatically search (introspect) for remote procedures, instead use the runtime method names. This mean `AllserverClient` won't guarantee the procedure existence until you try calling the procedure. E.g., this code `allserverClient.myProcedureName()` will do `POST /myProcedureName` HTTP request (aka "call of faith"). Useful when you don't want to expose introspection HTTP endpoint or don't want to add Allserver's mandatory proto in GRPC server.
+
+- `callIntrospectedProceduresOnly=true`<br>
+If introspection couldn't find a procedure then do not attempt sending a "call of faith" to the server.
+
+- `nameMapper`<br>
+A function to map/filter procedure names found on the server to something else. E.g. `nameMapper: name => _.toCamelCase(name)`. If "falsy" value is returned from `nameMapper()` then this procedure won't be added to the `AllserverClient` object instance, like if it was not found on the server.
+
+- `before`<br>
+The "before" client-side middleware(s). Can be either a function, or an array of functions.
+
+- `after`<br>
+The "after" client-side middleware(s). Can be either a function, or an array of functions.
+
+### AllserverClient defaults
+
+You can change the above mentioned options default values like this:
+
+```js
+AllseverClient = AllserverClient.defaults({
+  transport,
+  neverThrow,
+  dynamicMethods,
+  autoIntrospect,
+  callIntrospectedProceduresOnly,
+  nameMapper,
+  before,
+  after,
+});
+
+// Then create your client instances as usual:
+const httpClient = AllserverClient({ uri: "https://example.com" });
+```
+
 ## FAQ
 
 ### What happens if I call a procedure, but the remote server does not reply?
@@ -450,7 +501,7 @@ If using `AllserverClient` you'll get this result, no exceptions thrown client-s
 ```json
 {
   "success": false,
-  "code": "ALLSERVER_PROCEDURE_UNREACHABLE",
+  "code": "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE",
   "message": "Couldn't reach remote procedure: procedureName"
 }
 ```
@@ -464,7 +515,7 @@ If using `AllserverClient` you'll get this result, no exceptions thrown client-s
 ```json
 {
   "success": false,
-  "code": "ALLSERVER_PROCEDURE_NOT_FOUND",
+  "code": "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND",
   "message": "Procedure 'procedureName' not found"
 }
 ```
@@ -656,15 +707,15 @@ Important note! **The code above does not require any special handling from you.
 
 ### Why `success,code,message`? I want different names.
 
-* `success` is a generic "all good" / "error happened" reply. Occasionally, you can't determine if it's success or a failure. E.g. if a user tries to unsubscribe from a mailing list, but there is no such user in the list. That's why we have `code`.
-* `code` is a hardcoded string for machines. Use it in the source code `if` statements.
-* `message` is an arbitrary string for humans. Use it as an error/success message on a UI. 
+- `success` is a generic "all good" / "error happened" reply. Occasionally, you can't determine if it's success or a failure. E.g. if a user tries to unsubscribe from a mailing list, but there is no such user in the list. That's why we have `code`.
+- `code` is a hardcoded string for machines. Use it in the source code `if` statements.
+- `message` is an arbitrary string for humans. Use it as an error/success message on a UI.
 
-I considered using `ok` instead of `success`, but Allserver is DX-first. The `ok` can be confused with the `fetch` API `Response.ok` property: `if ((await fetch(uri)).ok)`, we don't want that. Also, the `ok` is not a noun, thus complicates code reading a bit for newbie developers. 
+I considered using `ok` instead of `success`, but Allserver is DX-first. The `ok` can be confused with the `fetch` API `Response.ok` property: `if ((await fetch(uri)).ok)`, we don't want that. Also, the `ok` is not a noun, thus complicates code reading a bit for newbie developers.
 
 The only mandatory property of the three is `success`. The `code` and `message` are optional. So, you can have different names. Add them to your returned object. Just don't forget to add `success:Boolean` property.
 
-In the example below we mimic Slack's RPC. They use `ok` and `error` properties similar or Allserver's `success` and `message` properties. 
+In the example below we mimic Slack's RPC. They use `ok` and `error` properties similar or Allserver's `success` and `message` properties.
 
 ```js
 const procedures = {
@@ -673,12 +724,11 @@ const procedures = {
       await sns.sendMessage(/* ... */);
       return { success: true, ok: true };
     } catch (err) {
-      return { success: false, ok: false, error: err.message, status: 50014 };    
+      return { success: false, ok: false, error: err.message, status: 50014 };
     }
-  }
-}
+  },
+};
 ```
-
 
 ### TypeScript support?
 
