@@ -492,6 +492,24 @@ AllseverClient = AllserverClient.defaults({
 const httpClient = AllserverClient({ uri: "https://example.com" });
 ```
 
+### Your own client transport
+
+You can add your own schema support to AllserverClient.
+
+```js
+AllserverClient = AllserverClient.addTransport({ schema: "unixsocket", Transport: MyUnixSocketTransport });
+
+const client = AllserverClient({ uri: "unixsocket:///example/socket" });
+```
+
+You can overwrite the default client transport implementations:
+
+```js
+HttpClientTransport = HttpClientTransport.props({ fetch: require("./fetch-retry") });
+AllserverClient = AllserverClient.addTransport({ schema: "http", Transport: HttpClientTransport });
+AllserverClient = AllserverClient.addTransport({ schema: "https", Transport: HttpClientTransport });
+```
+
 ## FAQ
 
 ### What happens if I call a procedure, but the remote server does not reply?
