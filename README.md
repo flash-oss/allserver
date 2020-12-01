@@ -272,6 +272,22 @@ Allserver({
 }).start();
 ```
 
+#### Replying non-standard HTTP response from a procedure
+
+You'd need to deal with node.js `res` yourself.
+
+```js
+const procedires = {
+  processEntity({ someEntity }, ctx) {
+    const res = ctx.http.res;
+    res.statusCode = 422;
+    const msg = "Unprocessable Entity";
+    res.setHeader("Content-Length", Buffer.byteLength(msg));
+    res.send(msg);
+  },
+};
+```
+
 ### HTTP server in AWS Lambda
 
 Doesn't require a dedicated client transport. Use the HTTP client below.
@@ -359,7 +375,7 @@ Yeah. This is a mutating call using `HTTP GET`. That's by design, and I love it.
 
 ### HTTP limitations
 
-1. Sub-routes are not available. E.g. you can't have `/users/updateUser`. (Yet.)
+1. Sub-routes are not well-supported, your procedure should be named `"users/updateUser"` or alike. Also, in the `AllserverClient` you'd want to use `nameMapper`.
 
 ### gRPC server side
 
@@ -446,31 +462,31 @@ const { success, code, message, user } = data;
 **All the arguments are optional.** But either `uri` or `transport` must be provided. We are trying to keep the highest possible DX here.
 
 - `uri`<br>
-The remote server address string. Out of box supported schemas are: `http`, `https`, `grpc`. (More to come.)
+  The remote server address string. Out of box supported schemas are: `http`, `https`, `grpc`. (More to come.)
 
 - `transport`<br>
-The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https:/` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used.
+  The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https:/` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used.
 
 - `neverThrow=true`<br>
-Set it to `false` if you want to get exceptions when there are a network, or a server errors during a procedure call. Otherwise, the standard `{success,code,message}` object is returned from method calls. The Allserver error `code`s are always start with `"ALLSERVER_"`. E.g. `"ALLSERVER_CLIENT_MALFORMED_INTROSPECTION"`.
+  Set it to `false` if you want to get exceptions when there are a network, or a server errors during a procedure call. Otherwise, the standard `{success,code,message}` object is returned from method calls. The Allserver error `code`s are always start with `"ALLSERVER_"`. E.g. `"ALLSERVER_CLIENT_MALFORMED_INTROSPECTION"`.
 
 - `dynamicMethods=true`<br>
-Automatically find (introspect) and call corresponding remote procedures. If set to `false` the `AllserverClient` would use only the `methods` you defined explicitly client-side.
+  Automatically find (introspect) and call corresponding remote procedures. If set to `false` the `AllserverClient` would use only the `methods` you defined explicitly client-side.
 
 - `autoIntrospect=true`<br>
-Do not automatically search (introspect) for remote procedures, instead use the runtime method names. This mean `AllserverClient` won't guarantee the procedure existence until you try calling the procedure. E.g., this code `allserverClient.myProcedureName()` will do `POST /myProcedureName` HTTP request (aka "call of faith"). Useful when you don't want to expose introspection HTTP endpoint or don't want to add Allserver's mandatory proto in GRPC server.
+  Do not automatically search (introspect) for remote procedures, instead use the runtime method names. This mean `AllserverClient` won't guarantee the procedure existence until you try calling the procedure. E.g., this code `allserverClient.myProcedureName()` will do `POST /myProcedureName` HTTP request (aka "call of faith"). Useful when you don't want to expose introspection HTTP endpoint or don't want to add Allserver's mandatory proto in GRPC server.
 
 - `callIntrospectedProceduresOnly=true`<br>
-If introspection couldn't find a procedure then do not attempt sending a "call of faith" to the server.
+  If introspection couldn't find a procedure then do not attempt sending a "call of faith" to the server.
 
 - `nameMapper`<br>
-A function to map/filter procedure names found on the server to something else. E.g. `nameMapper: name => _.toCamelCase(name)`. If "falsy" value is returned from `nameMapper()` then this procedure won't be added to the `AllserverClient` object instance, like if it was not found on the server.
+  A function to map/filter procedure names found on the server to something else. E.g. `nameMapper: name => _.toCamelCase(name)`. If "falsy" value is returned from `nameMapper()` then this procedure won't be added to the `AllserverClient` object instance, like if it was not found on the server.
 
 - `before`<br>
-The "before" client-side middleware(s). Can be either a function, or an array of functions.
+  The "before" client-side middleware(s). Can be either a function, or an array of functions.
 
 - `after`<br>
-The "after" client-side middleware(s). Can be either a function, or an array of functions.
+  The "after" client-side middleware(s). Can be either a function, or an array of functions.
 
 ### AllserverClient defaults
 
@@ -497,7 +513,10 @@ const httpClient = AllserverClient({ uri: "https://example.com" });
 You can add your own schema support to AllserverClient.
 
 ```js
-AllserverClient = AllserverClient.addTransport({ schema: "unixsocket", Transport: MyUnixSocketTransport });
+AllserverClient = AllserverClient.addTransport({
+  schema: "unixsocket",
+  Transport: MyUnixSocketTransport,
+});
 
 const client = AllserverClient({ uri: "unixsocket:///example/socket" });
 ```
@@ -505,9 +524,17 @@ const client = AllserverClient({ uri: "unixsocket:///example/socket" });
 You can overwrite the default client transport implementations:
 
 ```js
-HttpClientTransport = HttpClientTransport.props({ fetch: require("./fetch-retry") });
-AllserverClient = AllserverClient.addTransport({ schema: "http", Transport: HttpClientTransport });
-AllserverClient = AllserverClient.addTransport({ schema: "https", Transport: HttpClientTransport });
+HttpClientTransport = HttpClientTransport.props({
+  fetch: require("./fetch-retry"),
+});
+AllserverClient = AllserverClient.addTransport({
+  schema: "http",
+  Transport: HttpClientTransport,
+});
+AllserverClient = AllserverClient.addTransport({
+  schema: "https",
+  Transport: HttpClientTransport,
+});
 ```
 
 ## FAQ
