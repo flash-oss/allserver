@@ -294,14 +294,14 @@ Occasionally, your HTTP method would need to access raw body of a request. This 
 
 ```js
 const procedires = {
-  processEntity(_, ctx) {
+  async processEntity(_, ctx) {
     const micro = ctx.allserver.transport.micro; // same as require("micro")
     const req = ctx.http.req; // node.js Request
     
     // as a string
-    const text = micro.text(req);
+    const text = await micro.text(req);
     // as a node.js buffer
-    const buffer = micro.buffer(req);
+    const buffer = await micro.buffer(req);
     
     // ... process the request here ... 
   },
