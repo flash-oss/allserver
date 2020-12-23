@@ -288,6 +288,24 @@ const procedires = {
 };
 ```
 
+#### Accessing Node request and its raw body as a Buffer
+
+Occasionally, your HTTP method would need to access raw Buffer of a request. This is how you do it:
+
+```js
+const procedires = {
+  processEntity(_, ctx) {
+    const micro = ctx.allserver.transport.micro;
+    const req = ctx.http.req;
+    const buffer = micro(req);
+    
+    // process the request buffer here 
+  },
+};
+```
+
+More info can be found in the [`micro`](http://npmjs.com/package/micro) NPM module docs.
+
 ### HTTP server in AWS Lambda
 
 Doesn't require a dedicated client transport. Use the HTTP client below.

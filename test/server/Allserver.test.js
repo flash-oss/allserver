@@ -513,7 +513,7 @@ describe("Allserver", () => {
             const server = require("../../src").Allserver();
 
             // Creates HttpTransport by default
-            assert(server.transport._micro);
+            assert(server.transport.micro);
 
             // Users console logger by default
             assert.strictEqual(server.logger, console);

@@ -4,7 +4,7 @@ module.exports = require("./Transport").compose({
     name: "HttpTransport",
 
     props: {
-        _micro: require("micro"),
+        micro: require("micro"),
         port: process.env.PORT,
     },
 
@@ -14,11 +14,11 @@ module.exports = require("./Transport").compose({
 
     methods: {
         async _deserializeRequest(ctx) {
-            const bodyBuffer = await this._micro.buffer(ctx.http.req);
+            const bodyBuffer = await this.micro.buffer(ctx.http.req);
             let arg = ctx.http.query;
             try {
                 // If there is no body we will use request query (aka search params)
-                if (bodyBuffer.length !== 0) arg = await this._micro.json(ctx.http.req);
+                if (bodyBuffer.length !== 0) arg = await this.micro.json(ctx.http.req);
                 ctx.arg = arg;
                 return true;
             } catch (err) {
@@ -39,7 +39,7 @@ module.exports = require("./Transport").compose({
         },
 
         startServer(defaultCtx) {
-            this.server = this._micro(async (req, res) => {
+            this.server = this.micro(async (req, res) => {
                 const ctx = { ...defaultCtx, http: { req, res, url: parseUrl(req.url) } };
 
                 ctx.http.query = {};
@@ -78,7 +78,7 @@ module.exports = require("./Transport").compose({
 
         reply(ctx) {
             if (!ctx.http.statusCode) ctx.http.statusCode = 200;
-            this._micro.send(ctx.http.res, ctx.http.statusCode, ctx.result);
+            this.micro.send(ctx.http.res, ctx.http.statusCode, ctx.result);
         },
     },
 });
