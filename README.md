@@ -288,18 +288,22 @@ const procedires = {
 };
 ```
 
-#### Accessing Node request and its raw body as a Buffer
+#### Accessing Node request and its raw body
 
-Occasionally, your HTTP method would need to access raw Buffer of a request. This is how you do it:
+Occasionally, your HTTP method would need to access raw body of a request. This is how you do it:
 
 ```js
 const procedires = {
   processEntity(_, ctx) {
-    const micro = ctx.allserver.transport.micro;
-    const req = ctx.http.req;
-    const buffer = micro(req);
+    const micro = ctx.allserver.transport.micro; // same as require("micro")
+    const req = ctx.http.req; // node.js Request
     
-    // process the request buffer here 
+    // as a string
+    const text = micro.text(req);
+    // as a node.js buffer
+    const buffer = micro.buffer(req);
+    
+    // ... process the request here ... 
   },
 };
 ```
