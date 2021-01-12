@@ -706,7 +706,7 @@ const client = AllserverClient({
 
 ##### My authorisation is not supported. What should I do?
 
-If something more sophisticated is needed - you can have `before` and `after` middleware(s) which run client-side.
+If something more sophisticated is needed - you would need to mangle the `ctx` in the client `before` and `after` middlewares.
 
 ```js
 const { AllserverClient } = require("allserver");
