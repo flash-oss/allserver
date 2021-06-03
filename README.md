@@ -277,7 +277,7 @@ Allserver({
 You'd need to deal with node.js `res` yourself.
 
 ```js
-const procedires = {
+const procedures = {
   processEntity({ someEntity }, ctx) {
     const res = ctx.http.res;
     res.statusCode = 422;
@@ -293,7 +293,7 @@ const procedires = {
 Occasionally, your HTTP method would need to access raw body of a request. This is how you do it:
 
 ```js
-const procedires = {
+const procedures = {
   async processEntity(_, ctx) {
     const micro = ctx.allserver.transport.micro; // same as require("micro")
     const req = ctx.http.req; // node.js Request
