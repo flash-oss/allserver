@@ -65,11 +65,12 @@ module.exports = require("stampit")({
             try {
                 result = await ctx.procedure(ctx.arg, ctx);
             } catch (err) {
-                this.logger.error("ALLSERVER_PROCEDURE_ERROR", err);
+                const code = err.code || "ALLSERVER_PROCEDURE_ERROR"
+                this.logger.error(code, err);
                 ctx.error = err;
                 ctx.result = {
                     success: false,
-                    code: err.code || "ALLSERVER_PROCEDURE_ERROR",
+                    code,
                     message: `'${err.message}' error in '${ctx.procedureName}' procedure`,
                 };
                 await this.transport.prepareProcedureErrorReply(ctx);
@@ -102,11 +103,12 @@ module.exports = require("stampit")({
                         break;
                     }
                 } catch (err) {
-                    this.logger.error("ALLSERVER_MIDDLEWARE_ERROR", err);
+                    const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";  
+                    this.logger.error(code, err);
                     ctx.error = err;
                     ctx.result = {
                         success: false,
-                        code: err.code || "ALLSERVER_MIDDLEWARE_ERROR",
+                        code,
                         message: `'${err.message}' error in '${middlewareType}' middleware`,
                     };
                     return;
