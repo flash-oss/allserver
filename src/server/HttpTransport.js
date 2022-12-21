@@ -13,7 +13,7 @@ module.exports = require("./Transport").compose({
     },
 
     methods: {
-        async _deserializeRequest(ctx) {
+        async deserializeRequest(ctx) {
             const bodyBuffer = await this.micro.buffer(ctx.http.req);
             let arg = ctx.http.query;
             try {
@@ -27,7 +27,7 @@ module.exports = require("./Transport").compose({
         },
 
         async _handleRequest(ctx) {
-            if (await this._deserializeRequest(ctx)) {
+            if (await this.deserializeRequest(ctx)) {
                 await ctx.allserver.handleCall(ctx);
             } else {
                 // HTTP protocol request was malformed (not expected structure).
