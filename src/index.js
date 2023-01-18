@@ -5,6 +5,9 @@ module.exports = {
     get Allserver() {
         return require("./server/Allserver");
     },
+    get Transport() {
+        return require("./server/Transport");
+    },
     get HttpTransport() {
         return require("./server/HttpTransport");
     },
@@ -20,10 +23,13 @@ module.exports = {
     get AllserverClient() {
         return require("./client/AllserverClient");
     },
-    get GrpcClientTransport() {
-        return require("./client/GrpcClientTransport");
+    get ClientTransport() {
+        return require("./client/ClientTransport");
     },
     get HttpClientTransport() {
         return require("./client/HttpClientTransport");
+    },
+    get GrpcClientTransport() {
+        return require("./client/GrpcClientTransport");
     },
 };

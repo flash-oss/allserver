@@ -10,7 +10,7 @@ const VoidTransport = require("stampit")({
         reply() {},
     },
 });
-const Allserver = require("../../src").Allserver.props({
+const Allserver = require("../..").Allserver.props({
     transport: VoidTransport(),
     procedures: { testMethod() {} },
 });
@@ -510,7 +510,7 @@ describe("Allserver", () => {
 
     describe("init", () => {
         it("should init", () => {
-            const server = require("../../src").Allserver();
+            const server = require("../..").Allserver();
 
             // Creates HttpTransport by default
             assert(server.transport.micro);

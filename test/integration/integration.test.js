@@ -84,7 +84,7 @@ let {
     LambdaTransport,
     AllserverClient,
     GrpcClientTransport,
-} = require("../../src");
+} = require("../..");
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
 describe("integration", function () {

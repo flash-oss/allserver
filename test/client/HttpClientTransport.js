@@ -1,6 +1,6 @@
 const assert = require("assert");
 
-const { HttpClientTransport } = require("../../src");
+const { HttpClientTransport } = require("../..");
 
 describe("HttpClientTransport", () => {
     describe("#init", () => {

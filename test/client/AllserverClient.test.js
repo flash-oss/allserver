@@ -1,6 +1,6 @@
 const assert = require("assert");
 
-const VoidClientTransport = require("../../src/client/ClientTransport").compose({
+const VoidClientTransport = require("../..").ClientTransport.compose({
     props: {
         uri: "void://localhost",
     },
@@ -10,7 +10,7 @@ const VoidClientTransport = require("../../src/client/ClientTransport").compose(
         createCallContext: (defaultCtx) => ({ ...defaultCtx, void: {} }),
     },
 });
-const AllserverClient = require("../../src").AllserverClient.addTransport({
+const AllserverClient = require("../..").AllserverClient.addTransport({
     schema: "void",
     Transport: VoidClientTransport,
 });
@@ -24,7 +24,7 @@ describe("AllserverClient", () => {
 
     describe("#addTransport", () => {
         it("should allow overwriting existing configured transports", () => {
-            const AC = require("../../src").AllserverClient;
+            const AC = require("../..").AllserverClient;
             AC.addTransport({
                 schema: "http",
                 Transport: VoidClientTransport,

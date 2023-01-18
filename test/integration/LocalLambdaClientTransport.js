@@ -1,4 +1,4 @@
-module.exports = require("../../src/client/ClientTransport").compose({
+module.exports = require("../../ClientTransport").compose({
     name: "LocalLambdaClientTransport",
 
     props: {
