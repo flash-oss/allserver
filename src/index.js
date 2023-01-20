@@ -17,6 +17,9 @@ module.exports = {
     get GrpcTransport() {
         return require("./server/GrpcTransport");
     },
+    get BullmqTransport() {
+        return require("./server/BullmqTransport");
+    },
 
     // client
 
@@ -31,5 +34,8 @@ module.exports = {
     },
     get GrpcClientTransport() {
         return require("./client/GrpcClientTransport");
+    },
+    get BullmqClientTransport() {
+        return require("./client/BullmqClientTransport");
     },
 };

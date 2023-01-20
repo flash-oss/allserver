@@ -2,7 +2,7 @@
 
 Multi-transport and multi-protocol simple RPC server and (optional) client. Boilerplate-less. Opinionated. Minimalistic. DX-first.
 
-Think HTTP, gRPC, GraphQL, WebSockets, Lambda, inter-process, unix sockets, etc Remote Procedure Calls using exactly the same client and server code.
+Think of Remote Procedure Calls using exactly the same client and server code but via multiple protocols/mechanisms such as HTTP, gRPC, GraphQL, WebSockets, job queues, Lambda, inter-process, (Web)Workers, unix sockets, etc etc etc.
 
 Should be used in (micro)services where JavaScript is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, SharedWorker, thread, you name it.
 
@@ -12,6 +12,7 @@ Superpowers the `Allserver` gives you:
 - Run your HTTP server as gRPC with a single line change (almost).
 - Serve same logic via HTTP and gRPC (or more) simultaneously in the same node.js process.
 - Deploy and run your HTTP server on AWS Lambda with no code changes.
+- Use Redis-baked job queue [BullMQ](https://docs.bullmq.io) to call remote procedures reliably.
 - And moar!
 
 Superpowers the `AllserverClient` gives you:
@@ -88,6 +89,7 @@ When calling a remote procedure I want something which:
 - Can be easily mapped to any language, any protocol. Especially to upstream GraphQL mutations.
 - Is simple to read in the source code, just like a method/function call. Without thinking of protocol-level details for every damn call.
 - Allows me to test gRPC server from my browser/Postman/curl (via HTTP!) by a simple one line config change.
+- Replace flaky HTTP with Kafka
 - Does not bring tons of npm dependencies with it.
 
 Also, the main driving force was my vast experience splitting monolith servers onto (micro)services. Here is how I do it with much success.
@@ -190,6 +192,26 @@ npm i allserver @grpc/grpc-js@1 @grpc/proto-loader@0.5
 ```
 
 Or do gRPC requests using any module you like.
+
+### [BullMQ](https://docs.bullmq.io) job queue
+
+#### Server
+
+The default `BullmqTransport` is using the [`bullmq`](https://www.npmjs.com/package/bullmq) module as a dependency, connects to Redis using `Worker` class.
+
+```shell script
+npm i allserver bullmq
+```
+
+#### Client
+
+Optionally, you can use Allserver's built-in client:
+
+```shell script
+npm i allserver bullmq
+```
+
+Or use the `bullmq` module directly. You don't need to use Allserver to call remote procedures. See code example below.
 
 ## Code examples
 
@@ -297,13 +319,13 @@ const procedures = {
   async processEntity(_, ctx) {
     const micro = ctx.allserver.transport.micro; // same as require("micro")
     const req = ctx.http.req; // node.js Request
-    
+
     // as a string
     const text = await micro.text(req);
     // as a node.js buffer
     const buffer = await micro.buffer(req);
-    
-    // ... process the request here ... 
+
+    // ... process the request here ...
   },
 };
 ```
@@ -479,15 +501,80 @@ const { success, code, message, user } = data;
 1. You can't have `import` statements in your `.proto` file. (Yet.)
 1. Your server-side `.proto` file must include Allserver's [mandatory declarations](./mandatory.proto). (Yet.)
 
+### BullMQ server side
+
+Note that we are reusing the `procedures` from the example above.
+
+Here is how your BullMQ server can look like:
+
+```js
+const { Allserver, BullmqTransport } = require("allserver");
+
+Allserver({
+  procedures,
+  transport: BullmqTransport({
+    connectionOptions: { host: "localhost", port: 6379 },
+  }),
+}).start();
+```
+
+### BullMQ client side
+
+#### Using built-in client
+
+Note, that this code is **same** as the HTTP client code example above! The only difference is the URI.
+
+```js
+const { AllserverClient, BullmqClientTransport } = require("allserver");
+// or
+const AllserverClient = require("allserver/Client");
+
+const client = AllserverClient({ uri: "bullmq://localhost:6379" });
+// or
+const client = AllserverClient({
+  transport: BullmqClientTransport({ uri: "redis://localhost:6379" }),
+});
+
+const { success, code, message, user } = await client.updateUser({
+  id: "123412341234123412341234",
+  firstName: "Fred",
+  lastName: "Flinstone",
+});
+```
+
+The `bullmq://` schema uses same connection string as Redis: `bullmq://[[username:]password@]host[:port][/database]`
+
+#### Using any BullMQ `Queue` class without Allserver
+
+```js
+const { Queue, QueueEvents } = require("bullmq");
+
+const queue = new Queue("Allserver", {
+  connection: { host: "localhost", port },
+});
+const queueEvents = new QueueEvents("Allserver", {
+  connection: { host: "localhost", port },
+});
+
+const job = await queue.add("updateUser", {
+  id: "123412341234123412341234",
+  firstName,
+  lastName,
+});
+const data = await job.waitUntilFinished(queueEvents, 30_000);
+
+const { success, code, message, user } = data;
+```
+
 ## `AllserverClient` options
 
 **All the arguments are optional.** But either `uri` or `transport` must be provided. We are trying to keep the highest possible DX here.
 
 - `uri`<br>
-  The remote server address string. Out of box supported schemas are: `http`, `https`, `grpc`. (More to come.)
+  The remote server address string. Out of box supported schemas are: `http`, `https`, `grpc`, `bullmq`. (More to come.)
 
 - `transport`<br>
-  The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https:/` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used.
+  The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https://` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used. If starts with `bullmq://` then `BullmqClientTransport` is used.
 
 - `neverThrow=true`<br>
   Set it to `false` if you want to get exceptions when there are a network, or a server errors during a procedure call. Otherwise, the standard `{success,code,message}` object is returned from method calls. The Allserver error `code`s are always start with `"ALLSERVER_"`. E.g. `"ALLSERVER_CLIENT_MALFORMED_INTROSPECTION"`.

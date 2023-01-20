@@ -65,7 +65,7 @@ module.exports = require("stampit")({
             try {
                 result = await ctx.procedure(ctx.arg, ctx);
             } catch (err) {
-                const code = err.code || "ALLSERVER_PROCEDURE_ERROR"
+                const code = err.code || "ALLSERVER_PROCEDURE_ERROR";
                 this.logger.error(code, err);
                 ctx.error = err;
                 ctx.result = {
@@ -103,7 +103,7 @@ module.exports = require("stampit")({
                         break;
                     }
                 } catch (err) {
-                    const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";  
+                    const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";
                     this.logger.error(code, err);
                     ctx.error = err;
                     ctx.result = {
@@ -136,7 +136,7 @@ module.exports = require("stampit")({
             // Warning! This call might overwrite an existing result.
             await this._callMiddlewares(ctx, "after");
 
-            this.transport.reply(ctx);
+            return this.transport.reply(ctx);
         },
 
         start() {

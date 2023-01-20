@@ -2,12 +2,13 @@ const assert = require("assert");
 
 const procedures = {
     sayHello({ name }) {
+        // await new Promise((r) => setTimeout(r, 61000));
         return "Hello " + name;
     },
     introspection({ enable }, { allserver }) {
         allserver.introspection = Boolean(enable);
     },
-    gate({ number }) {
+    async gate({ number }) {
         if (number === 0) return undefined;
         if (number === 1) return { length: 42 };
         if (number === 2) return { name: "Golden Gate", lastVehicle: "0 seconds ago" };
@@ -82,6 +83,8 @@ let {
     HttpTransport,
     GrpcTransport,
     LambdaTransport,
+    BullmqTransport,
+    BullmqClientTransport,
     AllserverClient,
     GrpcClientTransport,
 } = require("../..");
@@ -104,7 +107,7 @@ describe("integration", function () {
             assert(response.error.message.includes("ECONNREFUSED"));
 
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
-            httpServer.start();
+            await httpServer.start();
 
             await callClientMethods(httpClient);
 
@@ -129,7 +132,7 @@ describe("integration", function () {
 
         it("should behave with node-fetch", async () => {
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
-            httpServer.start();
+            await httpServer.start();
 
             let response;
 
@@ -245,6 +248,61 @@ describe("integration", function () {
             });
 
             await callClientMethods(lambdaClient);
+        });
+    });
+
+    describe("bullmq", () => {
+        const { RedisMemoryServer } = require("redis-memory-server");
+
+        it("should behave with AllserverClient", async () => {
+            let bullmqClient = AllserverClient({ uri: `bullmq://localhost:65432` }); // This port should not have Redis server on it.
+
+            const response = await bullmqClient.sayHello({ name: "world" });
+            assert.strictEqual(response.success, false);
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
+            assert(response.error.message.includes("ECONNREFUSED"));
+
+            const redisServer = new RedisMemoryServer({ autoStart: true, instance: { ip: "0.0.0.0" } });
+            const port = await redisServer.getPort();
+            const bullmqServer = Allserver({
+                procedures,
+                transport: BullmqTransport({ connectionOptions: { host: "localhost", port } }),
+            });
+            await bullmqServer.start();
+
+            bullmqClient = AllserverClient({ uri: `bullmq://localhost:${port}` });
+            await callClientMethods(bullmqClient);
+            bullmqClient = AllserverClient({ transport: BullmqClientTransport({ uri: `redis://localhost:${port}` }) });
+            await callClientMethods(bullmqClient);
+
+            await bullmqServer.stop();
+            await redisServer.stop();
+        });
+
+        it("should behave with 'bullmq' module", async () => {
+            const redisServer = new RedisMemoryServer({ autoStart: true, instance: { ip: "0.0.0.0" } });
+            const port = await redisServer.getPort();
+            const bullmqServer = Allserver({
+                procedures,
+                transport: BullmqTransport({ queueName: "OtherName", connectionOptions: { host: "localhost", port } }),
+            });
+            await bullmqServer.start();
+
+            const { Queue, QueueEvents } = require("bullmq");
+
+            const queue = new Queue("OtherName", { connection: { host: "localhost", port } });
+            queue.on("error", () => {}); // This line removes noisy console.error() output which is emitted while Redis is starting
+            const queueEvents = new QueueEvents("OtherName", { connection: { host: "localhost", port } });
+            queueEvents.on("error", () => {}); // This line removes noisy console.error() output which is emitted while Redis is starting
+            const jobsOptions = { removeOnComplete: true, removeOnFail: true };
+            const job = await queue.add("sayHello", { name: "world" }, jobsOptions);
+            const response = await job.waitUntilFinished(queueEvents, 1000);
+            const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
+            assert.deepStrictEqual(response, expectedHello);
+
+            await bullmqServer.stop();
+            await redisServer.stop();
         });
     });
 });

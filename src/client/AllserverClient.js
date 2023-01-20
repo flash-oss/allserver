@@ -164,6 +164,7 @@ module.exports = require("stampit")({
             http() { return require("./HttpClientTransport"); },
             https() { return require("./HttpClientTransport"); },
             grpc() { return require("./GrpcClientTransport"); },
+            bullmq() { return require("./BullmqClientTransport"); },
         },
     },
 
