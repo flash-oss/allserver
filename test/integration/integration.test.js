@@ -252,8 +252,6 @@ describe("integration", function () {
     });
 
     describe("bullmq", () => {
-        const { RedisMemoryServer } = require("redis-memory-server");
-
         it("should behave with AllserverClient", async () => {
             let bullmqClient = AllserverClient({ uri: `bullmq://localhost:65432` }); // This port should not have Redis server on it.
 
@@ -263,8 +261,7 @@ describe("integration", function () {
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
             assert(response.error.message.includes("ECONNREFUSED"));
 
-            const redisServer = new RedisMemoryServer({ autoStart: true, instance: { ip: "0.0.0.0" } });
-            const port = await redisServer.getPort();
+            const port = 6379;
             const bullmqServer = Allserver({
                 procedures,
                 transport: BullmqTransport({ connectionOptions: { host: "localhost", port } }),
@@ -277,12 +274,10 @@ describe("integration", function () {
             await callClientMethods(bullmqClient);
 
             await bullmqServer.stop();
-            await redisServer.stop();
         });
 
         it("should behave with 'bullmq' module", async () => {
-            const redisServer = new RedisMemoryServer({ autoStart: true, instance: { ip: "0.0.0.0" } });
-            const port = await redisServer.getPort();
+            const port = 6379;
             const bullmqServer = Allserver({
                 procedures,
                 transport: BullmqTransport({ queueName: "OtherName", connectionOptions: { host: "localhost", port } }),
@@ -302,7 +297,6 @@ describe("integration", function () {
             assert.deepStrictEqual(response, expectedHello);
 
             await bullmqServer.stop();
-            await redisServer.stop();
         });
     });
 });
