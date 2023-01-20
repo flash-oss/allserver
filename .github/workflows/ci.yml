@@ -2,7 +2,7 @@ name: CI
 on: [push, pull_request]
 jobs:
   test_unix:
-    name: Node ${{ matrix.node-version }}, Redis ${{ matrix.redis-version }}, ${{ matrix.os-version }}
+    name: ${{ matrix.os-version }}, Node ${{ matrix.node-version }}, Redis ${{ matrix.redis-version }}
     runs-on: ${{ matrix.os-version }}
     strategy:
       matrix:
@@ -30,6 +30,8 @@ jobs:
         env:
           CI: true
 
+  # Testing Windows separately because Github CI does not support Redis on Windows. Sigh.
+  # We skip BullMQ (Redis-backed) integration test on Windows using `if (process.platform === "win32")`
   test_windows:
     name: Node ${{ matrix.node-version }}, ${{ matrix.os-version }}
     runs-on: ${{ matrix.os-version }}

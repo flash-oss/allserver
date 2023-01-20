@@ -12,7 +12,7 @@ Superpowers the `Allserver` gives you:
 - Run your HTTP server as gRPC with a single line change (almost).
 - Serve same logic via HTTP and gRPC (or more) simultaneously in the same node.js process.
 - Deploy and run your HTTP server on AWS Lambda with no code changes.
-- Use Redis-baked job queue [BullMQ](https://docs.bullmq.io) to call remote procedures reliably.
+- Use Redis-backed job queue [BullMQ](https://docs.bullmq.io) to call remote procedures reliably.
 - And moar!
 
 Superpowers the `AllserverClient` gives you:
