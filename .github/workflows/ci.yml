@@ -2,33 +2,27 @@ name: CI
 on: [push, pull_request]
 jobs:
   test:
-    name: Test with Node.js v${{ matrix.node }} and ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Node ${{ matrix.node-version }}, Redis ${{ matrix.redis-version }} and ${{ matrix.os-version }}
+    runs-on: ${{ matrix.os-version }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: ['10', '12', '14', '16', '18']
-
-    # Service containers to run
-    services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        os-version: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ['10', '12', '14', '16', '18']
+        redis-version: [5, 6]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Git checkout
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js v${{ matrix.node }}
+      - name: Use Node ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node }}
+          node-version: ${{ matrix.node-version }}
+
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: ${{ matrix.redis-version }}
 
       - run: npm install
 
