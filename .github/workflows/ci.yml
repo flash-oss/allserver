@@ -10,6 +10,19 @@ jobs:
         node-version: ['10', '12', '14', '16', '18']
         redis-version: [5, 6]
 
+    # Service containers to run
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis@${{ matrix.redis-version }}
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
