@@ -261,6 +261,8 @@ describe("integration", function () {
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
             assert(response.error.message.includes("ECONNREFUSED"));
 
+            if (process.platform === "win32") return;
+
             const port = 6379;
             const bullmqServer = Allserver({
                 procedures,
@@ -277,6 +279,8 @@ describe("integration", function () {
         });
 
         it("should behave with 'bullmq' module", async () => {
+            if (process.platform === "win32") return;
+
             const port = 6379;
             const bullmqServer = Allserver({
                 procedures,

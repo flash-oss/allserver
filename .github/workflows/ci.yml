@@ -1,34 +1,49 @@
 name: CI
 on: [push, pull_request]
 jobs:
-  test:
-    name: Node ${{ matrix.node-version }} and ${{ matrix.os-version }}
+  test_unix:
+    name: Node ${{ matrix.node-version }}, Redis ${{ matrix.redis-version }}, ${{ matrix.os-version }}
     runs-on: ${{ matrix.os-version }}
     strategy:
       matrix:
-        os-version: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ['10', '12', '14', '16', '18']
+        os-version: [ubuntu-latest, macos-latest]
+        node-version: ["14", "16", "18"]
         redis-version: [5, 6]
-
-    # Service containers to run
-    services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Git checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
 
       - name: Use Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup redis
+        uses: shogo82148/actions-setup-redis@v1
+        with:
+          redis-version: ${{ matrix.redis-version }}
+
+      - run: npm install
+
+      - run: npm test
+        env:
+          CI: true
+
+  test_windows:
+    name: Node ${{ matrix.node-version }}, ${{ matrix.os-version }}
+    runs-on: ${{ matrix.os-version }}
+    strategy:
+      matrix:
+        os-version: [windows-latest]
+        node-version: ["14", "16", "18"]
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
 
