@@ -30,16 +30,16 @@ setTimeout(async () => {
     // HTTP
     console.log("\nHTTP");
 
-    const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 4000 }) });
+    const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40000 }) });
     httpServer.start();
 
     // const fetch = require("node-fetch");
     // const response = await (
-    //     await fetch("http://localhost:4000/sayHello", { method: "POST", body: JSON.stringify({ name: user }) })
+    //     await fetch("http://localhost:40000/sayHello", { method: "POST", body: JSON.stringify({ name: user }) })
     // ).json();
     // console.log("Greeting:", response.message);
 
-    const httpClient = AllserverClient({ uri: "http://localhost:4000" });
+    const httpClient = AllserverClient({ uri: "http://localhost:40000" });
     await callClientMethods(httpClient);
     await httpServer.stop();
 

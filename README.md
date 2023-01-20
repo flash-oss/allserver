@@ -376,7 +376,7 @@ const { AllserverClient } = require("allserver");
 // or
 const AllserverClient = require("allserver/Client");
 
-const client = AllserverClient({ uri: "http://localhost:4000" });
+const client = AllserverClient({ uri: "http://localhost:40000" });
 
 const { success, code, message, user } = await client.updateUser({
   id: "123412341234123412341234",
@@ -385,7 +385,7 @@ const { success, code, message, user } = await client.updateUser({
 });
 ```
 
-The `AllserverClient` will issue `HTTP POST` request to this URL: `http://localhost:4000/updateUser`.
+The `AllserverClient` will issue `HTTP POST` request to this URL: `http://localhost:40000/updateUser`.
 The path of the URL is dynamically taken straight from the `client.updateUser` calling code using the ES6 [`Proxy`](https://stackoverflow.com/a/20147219/188475) class. In other words, `AllserverClient` intercepts non-existent property access.
 
 #### Using any HTTP client (axios in this example)
@@ -395,7 +395,7 @@ It's a regular HTTP `POST` call with JSON request and response. URI is `/updateU
 ```js
 import axios from "axios";
 
-const response = await axios.post("http://localhost:4000/updateUser", {
+const response = await axios.post("http://localhost:40000/updateUser", {
   id: "123412341234123412341234",
   firstName: "Fred",
   lastName: "Flinstone",
@@ -740,7 +740,7 @@ Yep.
 const { AllserverClient } = require("allserver");
 
 const client = AllserverClient({
-  uri: "http://example.com:4000",
+  uri: "http://example.com:40000",
 
   async before(ctx) {
     console.log(ctx.procedureName, ctx.arg);
@@ -772,7 +772,7 @@ const { AllserverClient, HttpClientTransport } = require("allserver");
 
 const client = AllserverClient({
   transport: HttpClientTransport({
-    uri: "http://my-server:4000",
+    uri: "http://my-server:40000",
     headers: { authorization: "Basic my-token" },
   }),
 });
@@ -799,7 +799,7 @@ If something more sophisticated is needed - you would need to mangle the `ctx` i
 const { AllserverClient } = require("allserver");
 
 const client = AllserverClient({
-  uri: "http://my-server:4000",
+  uri: "http://my-server:40000",
   async before(ctx) {
     console.log(ctx.procedureName, ctx.arg);
     ctx.http.mode = "cors";
@@ -826,7 +826,7 @@ const MyAllserverClientWithAuth = AllserverClient.defaults({
 });
 
 const client = MyAllserverClientWithAuth({
-  uri: "http://my-server:4000",
+  uri: "http://my-server:40000",
 });
 ```
 
