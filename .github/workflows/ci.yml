@@ -2,7 +2,7 @@ name: CI
 on: [push, pull_request]
 jobs:
   test:
-    name: Node ${{ matrix.node-version }}, Redis ${{ matrix.redis-version }} and ${{ matrix.os-version }}
+    name: Node ${{ matrix.node-version }} and ${{ matrix.os-version }}
     runs-on: ${{ matrix.os-version }}
     strategy:
       matrix:
@@ -15,7 +15,7 @@ jobs:
       # Label used to access the service container
       redis:
         # Docker Hub image
-        image: redis@${{ matrix.redis-version }}
+        image: redis
         # Set health checks to wait until redis has started
         options: >-
           --health-cmd "redis-cli ping"
