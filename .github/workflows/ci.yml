@@ -8,7 +8,7 @@ jobs:
       matrix:
         os-version: [ubuntu-latest, macos-latest]
         node-version: ["14", "16", "18"]
-        redis-version: [5, 6]
+        redis-version: [6]
 
     steps:
       - name: Git checkout

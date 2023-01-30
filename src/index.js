@@ -11,6 +11,9 @@ module.exports = {
     get HttpTransport() {
         return require("./server/HttpTransport");
     },
+    get ExpressTransport() {
+        return require("./server/ExpressTransport");
+    },
     get LambdaTransport() {
         return require("./server/LambdaTransport");
     },

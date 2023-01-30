@@ -12,6 +12,7 @@ Superpowers the `Allserver` gives you:
 - Run your HTTP server as gRPC with a single line change (almost).
 - Serve same logic via HTTP and gRPC (or more) simultaneously in the same node.js process.
 - Deploy and run your HTTP server on AWS Lambda with no code changes.
+- Embed same exact code into your existing Express.js, no need to implement any handlers/middleware.
 - Use Redis-backed job queue [BullMQ](https://docs.bullmq.io) to call remote procedures reliably.
 - And moar!
 
@@ -143,15 +144,21 @@ Please note, that Allserver depends only on a single tiny npm module [`stampit`]
 
 The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module as an optional dependency.
 
-```shell script
+```shell
 npm i allserver micro
+```
+
+Alternatively, you can embed Allserver into your existing Express.js application:
+
+```shell
+npm i allserver express
 ```
 
 #### Client
 
 Optionally, you can use Allserver's built-in client:
 
-```shell script
+```shell
 npm i allserver node-fetch
 ```
 
@@ -163,7 +170,7 @@ Or do HTTP requests using any module you like.
 
 No dependencies other than `allserver` itself.
 
-```shell script
+```shell
 npm i allserver
 ```
 
@@ -177,7 +184,7 @@ Same as the HTTP protocol client above.
 
 The default `GrpcTransport` is using the standard the [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) npm module as an optional dependency.
 
-```shell script
+```shell
 npm i allserver @grpc/grpc-js@1 @grpc/proto-loader@0.5
 ```
 
@@ -187,7 +194,7 @@ Note, with gRPC server and client you'd need to have your own `.proto` file. See
 
 Optionally, you can use Allserver's built-in client:
 
-```shell script
+```shell
 npm i allserver @grpc/grpc-js@1 @grpc/proto-loader@0.5
 ```
 
@@ -199,7 +206,7 @@ Or do gRPC requests using any module you like.
 
 The default `BullmqTransport` is using the [`bullmq`](https://www.npmjs.com/package/bullmq) module as a dependency, connects to Redis using `Worker` class.
 
-```shell script
+```shell
 npm i allserver bullmq
 ```
 
@@ -207,7 +214,7 @@ npm i allserver bullmq
 
 Optionally, you can use Allserver's built-in client:
 
-```shell script
+```shell
 npm i allserver bullmq
 ```
 
@@ -332,6 +339,23 @@ const procedures = {
 
 More info can be found in the [`micro`](http://npmjs.com/package/micro) NPM module docs.
 
+### HTTP server in Express.js
+
+Doesn't require a dedicated client transport. Use the HTTP client below.
+
+NB: not yet tested in production.
+
+```js
+const { Allserver, ExpressTransport } = require("allserver");
+
+const middleware = Allserver({
+  procedures,
+  transport: ExpressTransport(),
+}).start();
+
+app.use("/route-with-allsever", middleware);
+```
+
 ### HTTP server in AWS Lambda
 
 Doesn't require a dedicated client transport. Use the HTTP client below.
@@ -365,7 +389,7 @@ exports = Allserver({
 
 You'd need to install `node-fetch` optional dependency.
 
-```shell script
+```shell
 npm i allserver node-fetch
 ```
 

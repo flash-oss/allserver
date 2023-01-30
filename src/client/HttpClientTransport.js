@@ -6,7 +6,9 @@ module.exports = require("./ClientTransport").compose({
     props: {
         // eslint-disable-next-line no-undef
         fetch: (typeof self !== "undefined" && self.fetch) || require("node-fetch"),
-        headers: {},
+        headers: {
+            "Content-Type": "application/json; charset=utf-8",
+        },
     },
 
     init({ headers, fetch }) {

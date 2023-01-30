@@ -82,6 +82,7 @@ async function callClientMethods(client) {
 let {
     Allserver,
     HttpTransport,
+    ExpressTransport,
     GrpcTransport,
     LambdaTransport,
     BullmqTransport,
@@ -165,6 +166,90 @@ describe("integration", function () {
             const httpClient = AllserverClient({ uri: "http://localhost:40000" });
             await callClientMethods(httpClient);
             await httpServer.stop();
+        });
+    });
+
+    describe("express", () => {
+        const express = require("express");
+        const fetch = require("node-fetch");
+
+        it("should behave with AllserverClient", async () => {
+            const httpClient = AllserverClient({ uri: "http://localhost:40001/express/allserver" });
+
+            let response;
+            response = await httpClient.sayHello({ name: "world" });
+            assert.strictEqual(response.success, false);
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
+            assert(response.error.message.includes("ECONNREFUSED"));
+
+            const app = express();
+            const expressServer = Allserver({ procedures, transport: ExpressTransport() });
+            app.use("/express/allserver", expressServer.start());
+            let server;
+            await new Promise((r, e) => (server = app.listen(40001, (err) => (err ? e(err) : r()))));
+
+            await callClientMethods(httpClient);
+
+            // HTTP-ony specific tests
+
+            // Should return 400
+            response = await httpClient.throwsBadArgs();
+            assert.strictEqual(response.code, "ERR_ASSERTION");
+            assert.strictEqual(response.error.status, 400);
+
+            // Should return 404
+            response = await httpClient.unexist();
+            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
+
+            // Should return 500
+            response = await httpClient.throws();
+            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
+            assert.strictEqual(response.error.status, 500);
+
+            await new Promise((r) => server.close(r));
+        });
+
+        it("should behave with node-fetch", async () => {
+            const app = express();
+            const expressServer = Allserver({ procedures, transport: ExpressTransport() });
+            app.use("/express/allsever", expressServer.start());
+            let server;
+            await new Promise((r, e) => (server = app.listen(40001, (err) => (err ? e(err) : r()))));
+
+            let response;
+
+            response = await (
+                await fetch("http://localhost:40001/express/allsever/sayHello", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: "world" }),
+                })
+            ).json();
+            const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
+            assert.deepStrictEqual(response, expectedHello);
+
+            // HTTP-ony specific tests
+
+            // Should return 400
+            response = await fetch("http://localhost:40001/express/allsever/sayHello", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: Buffer.allocUnsafe(999),
+            });
+            assert(!response.ok);
+            assert.strictEqual(response.status, 400);
+
+            // Should call using GET with query params
+            response = await fetch("http://localhost:40001/express/allsever/sayHello?name=world");
+            assert(response.ok);
+            const body = await response.json();
+            assert.deepStrictEqual(body, expectedHello);
+
+            const httpClient = AllserverClient({ uri: "http://localhost:40001/express/allsever" });
+            await callClientMethods(httpClient);
+
+            await new Promise((r) => server.close(r));
         });
     });
 
