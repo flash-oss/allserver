@@ -145,7 +145,7 @@ Please note, that Allserver depends only on a single tiny npm module [`stampit`]
 The default `HttpTransport` is using the [`micro`](http://npmjs.com/package/micro) npm module as an optional dependency.
 
 ```shell
-npm i allserver micro
+npm i allserver micro@10
 ```
 
 Alternatively, you can embed Allserver into your existing Express.js application:

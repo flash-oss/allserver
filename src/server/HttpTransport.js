@@ -1,3 +1,4 @@
+const http = require("http");
 const { parse: parseUrl, URLSearchParams } = require("url");
 
 module.exports = require("./Transport").compose({
@@ -39,18 +40,20 @@ module.exports = require("./Transport").compose({
         },
 
         startServer(defaultCtx) {
-            this.server = this.micro(async (req, res) => {
-                const ctx = { ...defaultCtx, http: { req, res, url: parseUrl(req.url) } };
+            this.server = new http.Server(
+                this.micro.serve(async (req, res) => {
+                    const ctx = { ...defaultCtx, http: { req, res, url: parseUrl(req.url) } };
 
-                ctx.http.query = {};
-                if (ctx.http.url.query) {
-                    for (const [key, value] of new URLSearchParams(ctx.http.url.query).entries()) {
-                        ctx.http.query[key] = value;
+                    ctx.http.query = {};
+                    if (ctx.http.url.query) {
+                        for (const [key, value] of new URLSearchParams(ctx.http.url.query).entries()) {
+                            ctx.http.query[key] = value;
+                        }
                     }
-                }
 
-                await this._handleRequest(ctx);
-            });
+                    await this._handleRequest(ctx);
+                })
+            );
             return new Promise((r) => this.server.listen(this.port, r));
         },
         stopServer() {
