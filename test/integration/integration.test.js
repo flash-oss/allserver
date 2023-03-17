@@ -106,7 +106,8 @@ describe("integration", function () {
             assert.strictEqual(response.success, false);
             assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            assert(response.error.message.includes("ECONNREFUSED"));
+            if (response.error.cause) assert(response.error.cause.message.includes("ECONNREFUSED"));
+            else assert(response.error.message.includes("ECONNREFUSED"));
 
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40000 }) });
             await httpServer.start();
@@ -181,7 +182,8 @@ describe("integration", function () {
             assert.strictEqual(response.success, false);
             assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            assert(response.error.message.includes("ECONNREFUSED"));
+            if (response.error.cause) assert(response.error.cause.message.includes("ECONNREFUSED"));
+            else assert(response.error.message.includes("ECONNREFUSED"));
 
             const app = express();
             const expressServer = Allserver({ procedures, transport: ExpressTransport() });
@@ -207,7 +209,10 @@ describe("integration", function () {
             assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
             assert.strictEqual(response.error.status, 500);
 
-            await new Promise((r) => server.close(r));
+            await new Promise((r) => {
+                server.closeIdleConnections();
+                server.close(r);
+            });
         });
 
         it("should behave with node-fetch", async () => {
@@ -249,7 +254,10 @@ describe("integration", function () {
             const httpClient = AllserverClient({ uri: "http://localhost:40001/express/allsever" });
             await callClientMethods(httpClient);
 
-            await new Promise((r) => server.close(r));
+            await new Promise((r) => {
+                server.closeIdleConnections();
+                server.close(r);
+            });
         });
     });
 

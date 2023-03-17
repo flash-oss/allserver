@@ -5,7 +5,7 @@ module.exports = require("./ClientTransport").compose({
 
     props: {
         // eslint-disable-next-line no-undef
-        fetch: (typeof self !== "undefined" && self.fetch) || require("node-fetch"),
+        fetch: (typeof globalThis !== "undefined" && globalThis.fetch) || require("node-fetch"),
         headers: {
             "Content-Type": "application/json; charset=utf-8",
         },
@@ -31,7 +31,8 @@ module.exports = require("./ClientTransport").compose({
                 response = await this.fetch(this.uri + procedureName, http);
                 http.response = response;
             } catch (err) {
-                if (err.code === "ECONNREFUSED") err.noNetToServer = true;
+                if (err.code === "ECONNREFUSED" || (err.cause && err.cause.code === "ECONNREFUSED"))
+                    err.noNetToServer = true;
                 throw err;
             }
 

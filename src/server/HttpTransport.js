@@ -57,7 +57,10 @@ module.exports = require("./Transport").compose({
             return new Promise((r) => this.server.listen(this.port, r));
         },
         stopServer() {
-            return new Promise((r) => this.server.close(r));
+            return new Promise((r) => {
+                this.server.closeIdleConnections();
+                this.server.close(r);
+            });
         },
 
         getProcedureName(ctx) {
