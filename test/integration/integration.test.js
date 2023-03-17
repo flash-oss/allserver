@@ -210,7 +210,7 @@ describe("integration", function () {
             assert.strictEqual(response.error.status, 500);
 
             await new Promise((r) => {
-                server.closeIdleConnections();
+                if (server.closeIdleConnections) server.closeIdleConnections();
                 server.close(r);
             });
         });
@@ -255,7 +255,7 @@ describe("integration", function () {
             await callClientMethods(httpClient);
 
             await new Promise((r) => {
-                server.closeIdleConnections();
+                if (server.closeIdleConnections) server.closeIdleConnections();
                 server.close(r);
             });
         });

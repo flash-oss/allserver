@@ -58,7 +58,7 @@ module.exports = require("./Transport").compose({
         },
         stopServer() {
             return new Promise((r) => {
-                this.server.closeIdleConnections();
+                if (this.server.closeIdleConnections) this.server.closeIdleConnections();
                 this.server.close(r);
             });
         },
