@@ -134,13 +134,13 @@ describe("integration", function () {
         });
 
         it("should behave with node-fetch", async () => {
-            const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40000 }) });
+            const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40001 }) });
             await httpServer.start();
 
             let response;
 
             response = await (
-                await fetch("http://localhost:40000/sayHello", {
+                await fetch("http://localhost:40001/sayHello", {
                     method: "POST",
                     body: JSON.stringify({ name: "world" }),
                 })
@@ -151,7 +151,7 @@ describe("integration", function () {
             // HTTP-ony specific tests
 
             // Should return 400
-            response = await fetch("http://localhost:40000/sayHello", {
+            response = await fetch("http://localhost:40001/sayHello", {
                 method: "POST",
                 body: Buffer.allocUnsafe(999),
             });
@@ -159,12 +159,12 @@ describe("integration", function () {
             assert.strictEqual(response.status, 400);
 
             // Should call using GET with query params
-            response = await fetch("http://localhost:40000/sayHello?name=world");
+            response = await fetch("http://localhost:40001/sayHello?name=world");
             assert(response.ok);
             const body = await response.json();
             assert.deepStrictEqual(body, expectedHello);
 
-            const httpClient = AllserverClient({ uri: "http://localhost:40000" });
+            const httpClient = AllserverClient({ uri: "http://localhost:40001" });
             await callClientMethods(httpClient);
             await httpServer.stop();
         });
@@ -175,7 +175,7 @@ describe("integration", function () {
         const fetch = require("node-fetch");
 
         it("should behave with AllserverClient", async () => {
-            const httpClient = AllserverClient({ uri: "http://localhost:40001/express/allserver" });
+            const httpClient = AllserverClient({ uri: "http://localhost:40002/express/allserver" });
 
             let response;
             response = await httpClient.sayHello({ name: "world" });
@@ -189,7 +189,7 @@ describe("integration", function () {
             const expressServer = Allserver({ procedures, transport: ExpressTransport() });
             app.use("/express/allserver", expressServer.start());
             let server;
-            await new Promise((r, e) => (server = app.listen(40001, (err) => (err ? e(err) : r()))));
+            await new Promise((r, e) => (server = app.listen(40002, (err) => (err ? e(err) : r()))));
 
             await callClientMethods(httpClient);
 
@@ -220,12 +220,12 @@ describe("integration", function () {
             const expressServer = Allserver({ procedures, transport: ExpressTransport() });
             app.use("/express/allsever", expressServer.start());
             let server;
-            await new Promise((r, e) => (server = app.listen(40001, (err) => (err ? e(err) : r()))));
+            await new Promise((r, e) => (server = app.listen(40003, (err) => (err ? e(err) : r()))));
 
             let response;
 
             response = await (
-                await fetch("http://localhost:40001/express/allsever/sayHello", {
+                await fetch("http://localhost:40003/express/allsever/sayHello", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name: "world" }),
@@ -237,7 +237,7 @@ describe("integration", function () {
             // HTTP-ony specific tests
 
             // Should return 400
-            response = await fetch("http://localhost:40001/express/allsever/sayHello", {
+            response = await fetch("http://localhost:40003/express/allsever/sayHello", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: Buffer.allocUnsafe(999),
@@ -246,12 +246,12 @@ describe("integration", function () {
             assert.strictEqual(response.status, 400);
 
             // Should call using GET with query params
-            response = await fetch("http://localhost:40001/express/allsever/sayHello?name=world");
+            response = await fetch("http://localhost:40003/express/allsever/sayHello?name=world");
             assert(response.ok);
             const body = await response.json();
             assert.deepStrictEqual(body, expectedHello);
 
-            const httpClient = AllserverClient({ uri: "http://localhost:40001/express/allsever" });
+            const httpClient = AllserverClient({ uri: "http://localhost:40003/express/allsever" });
             await callClientMethods(httpClient);
 
             await new Promise((r) => {
