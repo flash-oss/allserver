@@ -343,8 +343,6 @@ More info can be found in the [`micro`](http://npmjs.com/package/micro) NPM modu
 
 Doesn't require a dedicated client transport. Use the HTTP client below.
 
-NB: not yet tested in production.
-
 ```js
 const { Allserver, ExpressTransport } = require("allserver");
 
