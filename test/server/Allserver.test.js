@@ -116,7 +116,7 @@ describe("Allserver", () => {
             let logged = false;
             const server = Allserver({
                 logger: {
-                    error(code, err) {
+                    error(err, code) {
                         assert.strictEqual(code, "ALLSERVER_PROCEDURE_ERROR");
                         assert.strictEqual(err.message, "'undefined' is not a function");
                         logged = true;
@@ -294,7 +294,7 @@ describe("Allserver", () => {
                 let logged = false;
                 const server = Allserver({
                     logger: {
-                        error(code, err) {
+                        error(err, code) {
                             assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
                             assert.strictEqual(err.message, "Handle me please");
                             logged = true;
@@ -404,7 +404,7 @@ describe("Allserver", () => {
                 let logged = false;
                 const server = Allserver({
                     logger: {
-                        error(code, err) {
+                        error(err,code) {
                             assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
                             assert.strictEqual(err.message, "Handle me please");
                             logged = true;
