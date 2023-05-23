@@ -66,7 +66,7 @@ module.exports = require("stampit")({
                 result = await ctx.procedure(ctx.arg, ctx);
             } catch (err) {
                 const code = err.code || "ALLSERVER_PROCEDURE_ERROR";
-                this.logger.error(code, err);
+                this.logger.error(err, code);
                 ctx.error = err;
                 ctx.result = {
                     success: false,
@@ -104,7 +104,7 @@ module.exports = require("stampit")({
                     }
                 } catch (err) {
                     const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";
-                    this.logger.error(code, err);
+                    this.logger.error(err, code);
                     ctx.error = err;
                     ctx.result = {
                         success: false,
