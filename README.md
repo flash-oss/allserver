@@ -593,6 +593,8 @@ const { success, code, message, user } = data;
 Sometimes you need to unit test your procedures via the `AllserverClient`. For that we have `MemoryTransport`.
 
 ```js
+const { Allserver, MemoryTransport } = require("allserver");
+
 const memoryServer = Allserver({
     procedures,
     transport: MemoryTransport(),
