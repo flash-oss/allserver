@@ -23,6 +23,9 @@ module.exports = {
     get BullmqTransport() {
         return require("./server/BullmqTransport");
     },
+    get MemoryTransport() {
+        return require("./server/MemoryTransport");
+    },
 
     // client
 
@@ -40,5 +43,8 @@ module.exports = {
     },
     get BullmqClientTransport() {
         return require("./client/BullmqClientTransport");
+    },
+    get MemoryClientTransport() {
+        return require("./client/MemoryClientTransport");
     },
 };

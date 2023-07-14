@@ -588,6 +588,27 @@ const data = await job.waitUntilFinished(queueEvents, 30_000);
 const { success, code, message, user } = data;
 ```
 
+### In memory
+
+Sometimes you need to unit test your procedures via the `AllserverClient`. For that we have `MemoryTransport`.
+
+```js
+const memoryServer = Allserver({
+    procedures,
+    transport: MemoryTransport(),
+});
+
+const client = memoryServer.start();
+
+const { success, code, message, user } = await client.updateUser({
+    id: "123412341234123412341234",
+    firstName: "Fred",
+    lastName: "Flinstone",
+});
+
+assert(success === true);
+```
+
 ## `AllserverClient` options
 
 **All the arguments are optional.** But either `uri` or `transport` must be provided. We are trying to keep the highest possible DX here.

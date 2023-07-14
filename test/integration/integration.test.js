@@ -87,6 +87,7 @@ let {
     LambdaTransport,
     BullmqTransport,
     BullmqClientTransport,
+    MemoryTransport,
     AllserverClient,
     GrpcClientTransport,
 } = require("../..");
@@ -342,6 +343,19 @@ describe("integration", function () {
             });
 
             await callClientMethods(lambdaClient);
+        });
+    });
+
+    describe("memory", () => {
+        it("should behave with AllserverClient", async () => {
+            const memoryServer = Allserver({
+                procedures,
+                transport: MemoryTransport(),
+            });
+
+            const memoryClient = memoryServer.start();
+
+            await callClientMethods(memoryClient);
         });
     });
 
