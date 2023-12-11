@@ -47,4 +47,7 @@ module.exports = {
     get MemoryClientTransport() {
         return require("./client/MemoryClientTransport");
     },
+    get LambdaClientTransport() {
+        return require("./client/LambdaClientTransport");
+    },
 };

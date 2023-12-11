@@ -1,30 +1,26 @@
 module.exports = require("./Transport").compose({
     name: "LambdaTransport",
 
-    props: {
-        _mapProceduresToExports: false,
-    },
-
-    init({ mapProceduresToExports }) {
-        this._mapProceduresToExports = mapProceduresToExports || this._mapProceduresToExports;
-    },
-
     methods: {
-        async deserializeRequest(ctx) {
-            const body = ctx.lambda.event.body;
-            let arg = ctx.lambda.query;
-            try {
-                // If there is no body we will use request query (aka search params)
-                if (body) arg = JSON.parse(body);
-                ctx.arg = arg;
+        async deserializeEvent(ctx) {
+            if (ctx.lambda.isHttp) {
+                const body = ctx.lambda.event.body;
+                let query = ctx.lambda.query;
+                try {
+                    // If there is no body we will use request query (aka search params)
+                    ctx.arg = body ? JSON.parse(body) : query;
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            } else {
+                ctx.arg = ctx.lambda.event || {};
                 return true;
-            } catch (err) {
-                return false;
             }
         },
 
         async _handleRequest(ctx) {
-            if (await this.deserializeRequest(ctx)) {
+            if (await this.deserializeEvent(ctx)) {
                 await ctx.allserver.handleCall(ctx);
             } else {
                 // HTTP protocol request was malformed (not expected structure).
@@ -36,37 +32,21 @@ module.exports = require("./Transport").compose({
         },
 
         startServer(defaultCtx) {
-            if (this._mapProceduresToExports) {
-                const exports = {};
-                for (const procedureName of Object.keys(defaultCtx.allserver.procedures)) {
-                    exports[procedureName] = async (event) =>
-                        new Promise((resolve) => {
-                            const path = "/" + procedureName;
-                            const ctx = {
-                                ...defaultCtx,
-                                lambda: { event, resolve, path, query: { ...(event.queryStringParameters || {}) } },
-                            };
-
-                            this._handleRequest(ctx);
-                        });
-                }
-                return exports;
-            }
-
-            return async (event) => {
+            return async (event, context) => {
                 return new Promise((resolve) => {
-                    const ctx = {
-                        ...defaultCtx,
-                        lambda: { event, resolve, path: event.path, query: { ...(event.queryStringParameters || {}) } },
-                    };
+                    const path = (event && (event.path || event.requestContext?.http?.path)) || undefined;
+                    const isHttp = Boolean(path);
+                    const procedureName = isHttp ? path.substr(1) : context.clientContext?.procedureName;
+                    const query = { ...(event?.queryStringParameters || {}) };
+                    const lambda = { resolve, isHttp, event, context, path, query, procedureName };
 
-                    this._handleRequest(ctx);
+                    this._handleRequest({ ...defaultCtx, lambda });
                 });
             };
         },
 
-        getProcedureName(ctx) {
-            return ctx.lambda.path.substr(1);
+        getProcedureName({ lambda: { procedureName } }) {
+            return procedureName;
         },
 
         isIntrospection(ctx) {
@@ -85,12 +65,16 @@ module.exports = require("./Transport").compose({
         },
 
         reply(ctx) {
-            if (!ctx.lambda.statusCode) ctx.lambda.statusCode = 200;
-            ctx.lambda.resolve({
-                statusCode: ctx.lambda.statusCode,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(ctx.result),
-            });
+            if (ctx.lambda.isHttp) {
+                if (!ctx.lambda.statusCode) ctx.lambda.statusCode = 200;
+                ctx.lambda.resolve({
+                    statusCode: ctx.lambda.statusCode,
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify(ctx.result),
+                });
+            } else {
+                ctx.lambda.resolve(ctx.result);
+            }
         },
     },
 });

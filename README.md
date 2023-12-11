@@ -176,7 +176,10 @@ npm i allserver
 
 #### Client
 
-Same as the HTTP protocol client above.
+Two ways:
+
+- Same as the HTTP protocol client above.
+- Direct invocation via AWS SDK or AWS CLI.
 
 ### gRPC protocol
 
@@ -369,15 +372,16 @@ exports.handler = Allserver({
 }).start();
 ```
 
-Or, if you want each individual procedure to be the Lambda handler, pass `mapProceduresToExports: true`.
+### Server in Bare AWS Lambda
+
+Invoke directly via AWS SDK or AWS CLI. But better use the LambdaClientTransport (aka `"lambda://"` scheme) below.
 
 ```js
 const { Allserver, LambdaTransport } = require("allserver");
 
-// Note! No `handler` here.
-exports = Allserver({
+exports.handler = Allserver({
   procedures,
-  transport: LambdaTransport({ mapProceduresToExports: true }),
+  transport: LambdaTransport(),
 }).start();
 ```
 
@@ -596,19 +600,76 @@ Sometimes you need to unit test your procedures via the `AllserverClient`. For t
 const { Allserver, MemoryTransport } = require("allserver");
 
 const memoryServer = Allserver({
-    procedures,
-    transport: MemoryTransport(),
+  procedures,
+  transport: MemoryTransport(),
 });
 
 const client = memoryServer.start();
 
 const { success, code, message, user } = await client.updateUser({
-    id: "123412341234123412341234",
-    firstName: "Fred",
-    lastName: "Flinstone",
+  id: "123412341234123412341234",
+  firstName: "Fred",
+  lastName: "Flinstone",
 });
 
 assert(success === true);
+```
+
+### Bare AWS Lambda invocation
+
+First you need to install any of the AWS SDK versions.
+
+```shell
+npm i allserver aws-sdk
+```
+
+or
+
+```shell
+npm i allserver @aws-sdk/client-lambda
+```
+
+The invoke the lambda this way:
+
+```js
+const { AllserverClient } = require("allserver");
+// or
+const AllserverClient = require("allserver/Client");
+
+const client = AllserverClient({ uri: "lambda://my-lambda-name" });
+
+const { success, code, message, user } = await client.updateUser({
+  id: "123412341234123412341234",
+  firstName: "Fred",
+  lastName: "Flinstone",
+});
+```
+
+#### Using AWS SDK
+
+As usual, the client side does not require the Allserver packages at all.
+
+```js
+import { Lambda } from "@aws-sdk/client-lambda";
+
+const invocationResponse = await new Lambda().invoke({
+  FunctionName: "my-lambda-name",
+  Payload: JSON.stringify({
+    id: "123412341234123412341234",
+    firstName: "Fred",
+    lastName: "Flinstone",
+  }),
+  ClientContext: JSON.stringify({
+    procedureName: "updateUser",
+  }),
+});
+const { success, code, message, user } = JSON.parse(invocationResponse.Payload);
+```
+
+Alternatively, you can call the same procedure using the `aws` CLI:
+
+```shell
+aws lambda invoke --function-name my-lambda-name --client-context '{"procedureName":"updateUser"}' --payload '{"id":"123412341234123412341234","firstName":"Fred","lastName":"Flinstone"}'
 ```
 
 ## `AllserverClient` options

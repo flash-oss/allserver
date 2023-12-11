@@ -90,6 +90,7 @@ let {
     MemoryTransport,
     AllserverClient,
     GrpcClientTransport,
+    LambdaClientTransport,
 } = require("../..");
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
 
@@ -329,7 +330,7 @@ describe("integration", function () {
     describe("lambda", () => {
         const LocalLambdaClientTransport = require("./LocalLambdaClientTransport");
 
-        it("should behave with AllserverClient", async () => {
+        it("should behave using mocked client", async () => {
             const lambdaServer = Allserver({
                 procedures,
                 transport: LambdaTransport(),
@@ -340,6 +341,37 @@ describe("integration", function () {
                     uri: "http://local/prefix",
                     lambdaHandler: lambdaServer.start(),
                 }),
+            });
+
+            await callClientMethods(lambdaClient);
+        });
+
+        it("should behave using mocked server", async () => {
+            const lambdaServer = Allserver({
+                procedures,
+                transport: LambdaTransport(),
+            });
+            const lambdaHandler = lambdaServer.start();
+
+            const localLambda = require("lambda-local");
+            localLambda.setLogger({ log() {}, transports: [] }); // silence logs
+
+            // Mocking the AWS SDK
+            const MockedLambdaClientTransport = LambdaClientTransport.props({
+                awsSdkLambdaClient: {
+                    async invoke({ /*FunctionName,*/ Payload, ClientContext }) {
+                        const response = await localLambda.execute({
+                            event: Payload && JSON.parse(Payload),
+                            clientContext: Buffer.from(ClientContext, "base64").toString(),
+                            lambdaFunc: { handler: lambdaHandler },
+                        });
+                        return { Payload: JSON.stringify(response) };
+                    },
+                },
+            });
+
+            const lambdaClient = AllserverClient({
+                transport: MockedLambdaClientTransport({ uri: "my-lambda-name" }),
             });
 
             await callClientMethods(lambdaClient);

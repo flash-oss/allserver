@@ -15,7 +15,11 @@ module.exports = require("../../ClientTransport").compose({
 
     methods: {
         async introspect() {
-            return this.call(this.createCallContext({ procedureName: "" }));
+            const result = await this.call(this.createCallContext({ procedureName: "" }));
+            // The server-side Transport will not have the call result if introspection is not available on the server side,
+            // but the server itself is up and running processing calls.
+            if (!result.procedures) throw Error("The lambda introspection call returned nothing"); // The ClientTransport expects us to throw if call fails
+            return result;
         },
 
         async call({ procedureName = "", arg }) {
