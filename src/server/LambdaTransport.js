@@ -4,17 +4,24 @@ module.exports = require("./Transport").compose({
     methods: {
         async deserializeEvent(ctx) {
             if (ctx.lambda.isHttp) {
-                const body = ctx.lambda.event.body;
-                let query = ctx.lambda.query;
+                const { body, query } = ctx.lambda.http;
                 try {
                     // If there is no body we will use request query (aka search params)
-                    ctx.arg = body ? JSON.parse(body) : query;
+                    if (!body) {
+                        ctx.arg = query || {};
+                    } else {
+                        if ((typeof body === "string" && body[0] === "{") || Buffer.isBuffer(body)) {
+                            ctx.arg = JSON.parse(body);
+                        } else {
+                            return false;
+                        }
+                    }
                     return true;
                 } catch (err) {
                     return false;
                 }
             } else {
-                ctx.arg = ctx.lambda.event || {};
+                ctx.arg = ctx.lambda.invoke.callArg || {};
                 return true;
             }
         },
@@ -34,19 +41,25 @@ module.exports = require("./Transport").compose({
         startServer(defaultCtx) {
             return async (event, context) => {
                 return new Promise((resolve) => {
+                    const lambda = { event, context, resolve };
+
                     const path = (event && (event.path || event.requestContext?.http?.path)) || undefined;
-                    const isHttp = Boolean(path);
-                    const procedureName = isHttp ? path.substr(1) : context.clientContext?.procedureName;
-                    const query = { ...(event?.queryStringParameters || {}) };
-                    const lambda = { resolve, isHttp, event, context, path, query, procedureName };
+                    lambda.isHttp = Boolean(path);
+
+                    if (lambda.isHttp) {
+                        lambda.http = { path, query: event?.queryStringParameters, body: event?.body };
+                    } else {
+                        lambda.invoke = { callContext: event?.callContext, callArg: event?.callArg };
+                    }
 
                     this._handleRequest({ ...defaultCtx, lambda });
                 });
             };
         },
 
-        getProcedureName({ lambda: { procedureName } }) {
-            return procedureName;
+        getProcedureName(ctx) {
+            const { isHttp, http, invoke } = ctx.lambda;
+            return isHttp ? http.path.substr(1) : invoke.callContext?.procedureName;
         },
 
         isIntrospection(ctx) {

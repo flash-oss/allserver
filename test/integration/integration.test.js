@@ -359,10 +359,9 @@ describe("integration", function () {
             // Mocking the AWS SDK
             const MockedLambdaClientTransport = LambdaClientTransport.props({
                 awsSdkLambdaClient: {
-                    async invoke({ /*FunctionName,*/ Payload, ClientContext }) {
+                    async invoke({ /*FunctionName,*/ Payload }) {
                         const response = await localLambda.execute({
                             event: Payload && JSON.parse(Payload),
-                            clientContext: Buffer.from(ClientContext, "base64").toString(),
                             lambdaFunc: { handler: lambdaHandler },
                         });
                         return { Payload: JSON.stringify(response) };
