@@ -47,7 +47,12 @@ module.exports = require("./Transport").compose({
                     lambda.isHttp = Boolean(path);
 
                     if (lambda.isHttp) {
-                        lambda.http = { path, query: event?.queryStringParameters, body: event?.body };
+                        lambda.http = {
+                            path,
+                            query: event?.queryStringParameters,
+                            body: event?.body,
+                            headers: event?.headers,
+                        };
                     } else {
                         lambda.invoke = { callContext: event?.callContext, callArg: event?.callArg };
                     }
