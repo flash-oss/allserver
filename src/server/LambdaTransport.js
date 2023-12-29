@@ -1,30 +1,33 @@
 module.exports = require("./Transport").compose({
     name: "LambdaTransport",
 
-    props: {
-        _mapProceduresToExports: false,
-    },
-
-    init({ mapProceduresToExports }) {
-        this._mapProceduresToExports = mapProceduresToExports || this._mapProceduresToExports;
-    },
-
     methods: {
-        async deserializeRequest(ctx) {
-            const body = ctx.lambda.event.body;
-            let arg = ctx.lambda.query;
-            try {
-                // If there is no body we will use request query (aka search params)
-                if (body) arg = JSON.parse(body);
-                ctx.arg = arg;
+        async deserializeEvent(ctx) {
+            if (ctx.lambda.isHttp) {
+                const { body, query } = ctx.lambda.http;
+                try {
+                    // If there is no body we will use request query (aka search params)
+                    if (!body) {
+                        ctx.arg = query || {};
+                    } else {
+                        if ((typeof body === "string" && body[0] === "{") || Buffer.isBuffer(body)) {
+                            ctx.arg = JSON.parse(body);
+                        } else {
+                            return false;
+                        }
+                    }
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            } else {
+                ctx.arg = ctx.lambda.invoke.callArg || {};
                 return true;
-            } catch (err) {
-                return false;
             }
         },
 
         async _handleRequest(ctx) {
-            if (await this.deserializeRequest(ctx)) {
+            if (await this.deserializeEvent(ctx)) {
                 await ctx.allserver.handleCall(ctx);
             } else {
                 // HTTP protocol request was malformed (not expected structure).
@@ -36,37 +39,32 @@ module.exports = require("./Transport").compose({
         },
 
         startServer(defaultCtx) {
-            if (this._mapProceduresToExports) {
-                const exports = {};
-                for (const procedureName of Object.keys(defaultCtx.allserver.procedures)) {
-                    exports[procedureName] = async (event) =>
-                        new Promise((resolve) => {
-                            const path = "/" + procedureName;
-                            const ctx = {
-                                ...defaultCtx,
-                                lambda: { event, resolve, path, query: { ...(event.queryStringParameters || {}) } },
-                            };
-
-                            this._handleRequest(ctx);
-                        });
-                }
-                return exports;
-            }
-
-            return async (event) => {
+            return async (event, context) => {
                 return new Promise((resolve) => {
-                    const ctx = {
-                        ...defaultCtx,
-                        lambda: { event, resolve, path: event.path, query: { ...(event.queryStringParameters || {}) } },
-                    };
+                    const lambda = { event, context, resolve };
 
-                    this._handleRequest(ctx);
+                    const path = (event && (event.path || event.requestContext?.http?.path)) || undefined;
+                    lambda.isHttp = Boolean(path);
+
+                    if (lambda.isHttp) {
+                        lambda.http = {
+                            path,
+                            query: event?.queryStringParameters,
+                            body: event?.body,
+                            headers: event?.headers,
+                        };
+                    } else {
+                        lambda.invoke = { callContext: event?.callContext, callArg: event?.callArg };
+                    }
+
+                    this._handleRequest({ ...defaultCtx, lambda });
                 });
             };
         },
 
         getProcedureName(ctx) {
-            return ctx.lambda.path.substr(1);
+            const { isHttp, http, invoke } = ctx.lambda;
+            return isHttp ? http.path.substr(1) : invoke.callContext?.procedureName;
         },
 
         isIntrospection(ctx) {
@@ -85,12 +83,16 @@ module.exports = require("./Transport").compose({
         },
 
         reply(ctx) {
-            if (!ctx.lambda.statusCode) ctx.lambda.statusCode = 200;
-            ctx.lambda.resolve({
-                statusCode: ctx.lambda.statusCode,
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(ctx.result),
-            });
+            if (ctx.lambda.isHttp) {
+                if (!ctx.lambda.statusCode) ctx.lambda.statusCode = 200;
+                ctx.lambda.resolve({
+                    statusCode: ctx.lambda.statusCode,
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify(ctx.result),
+                });
+            } else {
+                ctx.lambda.resolve(ctx.result);
+            }
         },
     },
 });

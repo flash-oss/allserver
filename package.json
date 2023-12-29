@@ -1,6 +1,6 @@
 {
   "name": "allserver",
-  "version": "2.1.0",
+  "version": "2.2.0-1",
   "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic. DX-first.",
   "main": "src/index.js",
   "scripts": {
@@ -9,6 +9,8 @@
     "cov": "nyc --reporter=html npm run test"
   },
   "keywords": [
+    "simple",
+    "rpc",
     "http",
     "grpc",
     "websocket",
@@ -63,7 +65,7 @@
     "@grpc/grpc-js": "^1.1.7",
     "@grpc/proto-loader": "^0.7.5",
     "bullmq": "^3.10.1",
-    "eslint": "^7.9.0",
+    "eslint": "^8.55.0",
     "express": "^4.18.2",
     "lambda-local": "^1.7.3",
     "micro": "^10.0.1",
@@ -77,7 +79,7 @@
   },
   "eslintConfig": {
     "parserOptions": {
-      "ecmaVersion": 2019
+      "ecmaVersion": 2022
     },
     "env": {
       "es6": true,
