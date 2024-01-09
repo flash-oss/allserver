@@ -227,7 +227,7 @@ module.exports = require("stampit")({
                     ctx.result = {
                         success: false,
                         code: "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
-                        message: `Couldn't introspect ${transport.uri}`,
+                        message: `Couldn't introspect ${transport.uri} due to: ${err.message}`,
                         noNetToServer: Boolean(err.noNetToServer),
                         error: err,
                     };
@@ -254,7 +254,7 @@ module.exports = require("stampit")({
                     let { code, message } = err;
                     if (!code) {
                         code = "ALLSERVER_CLIENT_MIDDLEWARE_ERROR";
-                        message = `The '${middlewareType}' middleware error while calling '${ctx.procedureName}' procedure`;
+                        message = `The '${middlewareType}' middleware error while calling '${ctx.procedureName}' procedure: ${err.message}`;
                     }
                     ctx.result = { success: false, code, message, error: err };
                     return;
@@ -278,7 +278,7 @@ module.exports = require("stampit")({
                     let { code, message } = err;
                     if (!err.code || err.noNetToServer) {
                         code = "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE";
-                        message = `Couldn't reach remote procedure: ${ctx.procedureName}`;
+                        message = `Couldn't reach remote procedure ${ctx.procedureName} due to: ${err.message}`;
                     }
                     ctx.result = { success: false, code, message, error: err };
                 }
