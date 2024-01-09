@@ -87,7 +87,7 @@ describe("AllserverClient", () => {
             const result = await AllserverClient({ transport: MockedTransport() }).introspect();
             assert.strictEqual(result.success, false);
             assert.strictEqual(result.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
-            assert.strictEqual(result.message, "Couldn't introspect void://localhost");
+            assert.strictEqual(result.message, "Couldn't introspect void://localhost due to: Cannot reach server");
             assert.strictEqual(result.error.message, "Cannot reach server");
         });
 
@@ -168,7 +168,7 @@ describe("AllserverClient", () => {
             const result = await AllserverClient({ transport: MockedTransport() }).call("foo", {});
             assert.strictEqual(result.success, false);
             assert.strictEqual(result.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(result.message, "Couldn't reach remote procedure: foo");
+            assert.strictEqual(result.message, "Couldn't reach remote procedure foo due to: Cannot reach server");
             assert.strictEqual(result.error.message, "Cannot reach server");
         });
 
@@ -183,7 +183,7 @@ describe("AllserverClient", () => {
             assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
             assert.strictEqual(result.success, false);
             assert.strictEqual(result.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(result.message, "Couldn't reach remote procedure: foo");
+            assert.strictEqual(result.message, "Couldn't reach remote procedure foo due to: Shit happens too");
             assert.strictEqual(result.error.message, "Shit happens too");
         });
     });
@@ -298,7 +298,7 @@ describe("AllserverClient", () => {
                 assert.deepStrictEqual(result, {
                     success: false,
                     code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
-                    message: "The 'before' middleware error while calling 'foo' procedure",
+                    message: "The 'before' middleware error while calling 'foo' procedure: 'before' is throwing",
                     error: err,
                 });
             });
@@ -399,7 +399,7 @@ describe("AllserverClient", () => {
                 assert.deepStrictEqual(result, {
                     success: false,
                     code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
-                    message: "The 'after' middleware error while calling 'foo' procedure",
+                    message: "The 'after' middleware error while calling 'foo' procedure: 'after' is throwing",
                     error: err,
                 });
             });
@@ -459,7 +459,7 @@ describe("AllserverClient", () => {
                 assert.deepStrictEqual(result, {
                     success: false,
                     code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
-                    message: "The 'before' middleware error while calling 'foo' procedure",
+                    message: "The 'before' middleware error while calling 'foo' procedure: 'before' is throwing",
                     error: err,
                 });
             });
