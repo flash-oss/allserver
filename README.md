@@ -361,8 +361,6 @@ app.use("/route-with-allsever", middleware);
 
 Doesn't require a dedicated client transport. Use the HTTP client below.
 
-NB: not yet tested in production.
-
 ```js
 const { Allserver, LambdaTransport } = require("allserver");
 
