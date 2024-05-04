@@ -911,7 +911,7 @@ const client = AllserverClient({
     ctx.http.headers.authorization = "Basic my-token";
   },
   async after(ctx) {
-    if (ctx.error) console.error(ctx.error) else console.log(ctx.result);
+    if (ctx.error) console.error(ctx.error); else console.log(ctx.result);
   },
 });
 ```

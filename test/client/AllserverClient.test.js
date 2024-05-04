@@ -213,7 +213,7 @@ describe("AllserverClient", () => {
                 },
                 async call({ procedureName, arg }) {
                     assert.strictEqual(procedureName, "getRates");
-                    assert.deepStrictEqual(arg, { a: 1 });
+                    assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "getRates" } });
                     return { success: true, code: "CALLED", message: "A is good", b: 42 };
                 },
             });
@@ -244,7 +244,7 @@ describe("AllserverClient", () => {
                     },
                     async call({ procedureName, arg }) {
                         assert.strictEqual(procedureName, "getRates");
-                        assert.deepStrictEqual(arg, { a: 1 });
+                        assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "getRates" } });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
                     },
                 });
@@ -256,7 +256,7 @@ describe("AllserverClient", () => {
                         assert(!ctx.procedureName);
                     } else {
                         assert.strictEqual(ctx.procedureName, "getRates");
-                        assert.deepStrictEqual(ctx.arg, { a: 1 });
+                        assert.deepStrictEqual(ctx.arg, { a: 1, _: { procedureName: "getRates" } });
                     }
                     beforeCalled += 1;
                 }
@@ -340,7 +340,7 @@ describe("AllserverClient", () => {
                     },
                     async call({ procedureName, arg }) {
                         assert.strictEqual(procedureName, "getRates");
-                        assert.deepStrictEqual(arg, { a: 1 });
+                        assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "getRates" } });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
                     },
                 });
@@ -352,7 +352,7 @@ describe("AllserverClient", () => {
                         assert(!ctx.procedureName);
                     } else {
                         assert.strictEqual(ctx.procedureName, "getRates");
-                        assert.deepStrictEqual(ctx.arg, { a: 1 });
+                        assert.deepStrictEqual(ctx.arg, { a: 1, _: { procedureName: "getRates" } });
                         assert.deepStrictEqual(ctx.result, {
                             success: true,
                             code: "CALLED",
@@ -479,7 +479,7 @@ describe("AllserverClient", () => {
                 },
                 async call({ procedureName, arg }) {
                     assert.strictEqual(procedureName, "foo");
-                    assert.deepStrictEqual(arg, { a: 1 });
+                    assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "foo" } });
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
                 },
             });
@@ -498,7 +498,7 @@ describe("AllserverClient", () => {
                 },
                 call({ procedureName, arg }) {
                     assert.strictEqual(procedureName, "foo");
-                    assert.deepStrictEqual(arg, { a: 1 });
+                    assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "foo" } });
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
                 },
             });

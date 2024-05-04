@@ -21,7 +21,7 @@ module.exports = require("./Transport").compose({
                     return false;
                 }
             } else {
-                ctx.arg = ctx.lambda.invoke.callArg || {};
+                ctx.arg = ctx.lambda.invoke || {};
                 return true;
             }
         },
@@ -54,7 +54,7 @@ module.exports = require("./Transport").compose({
                             headers: event?.headers,
                         };
                     } else {
-                        lambda.invoke = { callContext: event?.callContext, callArg: event?.callArg };
+                        lambda.invoke = event || {};
                     }
 
                     this._handleRequest({ ...defaultCtx, lambda });
@@ -64,7 +64,8 @@ module.exports = require("./Transport").compose({
 
         getProcedureName(ctx) {
             const { isHttp, http, invoke } = ctx.lambda;
-            return isHttp ? http.path.substr(1) : invoke.callContext?.procedureName;
+            if (isHttp) return http.path.substr(1);
+            return invoke._?.procedureName || ""; // if no procedureName then it's an introspection
         },
 
         isIntrospection(ctx) {
