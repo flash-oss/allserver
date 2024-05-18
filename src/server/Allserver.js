@@ -50,6 +50,13 @@ module.exports = require("stampit")({
             await this.transport.prepareIntrospectionReply(ctx);
         },
 
+        /**
+         * This method does not throw.
+         * The `ctx.procedure` is the function to call.
+         * @param ctx
+         * @return {Promise<void>}
+         * @private
+         */
         async _callProcedure(ctx) {
             if (!isFunction(ctx.procedure)) {
                 ctx.result = {
@@ -99,24 +106,21 @@ module.exports = require("stampit")({
                     return;
                 }
                 const middleware = middlewares[0];
+                async function handleMiddlewareResult(result) {
+                    if (result !== undefined) {
+                        ctx.result = result;
+                        // Do not call any more middlewares
+                    } else {
+                        await runMiddlewares(middlewares.slice(1));
+                    }
+                }
                 try {
                     if (middleware.length > 1) {
-                        await middleware.call(this, ctx, async (result) => {
-                            if (result !== undefined) {
-                                ctx.result = result;
-                                // Do not call any more middlewares
-                            } else {
-                                await runMiddlewares(middlewares.slice(1));
-                            }
-                        });
+                        // This middleware accepts more than one argument
+                        await middleware.call(this, ctx, handleMiddlewareResult);
                     } else {
                         const result = await middleware.call(this, ctx);
-                        if (result !== undefined) {
-                            ctx.result = result;
-                            // Do not call any more middlewares
-                        } else {
-                            await runMiddlewares(middlewares.slice(1));
-                        }
+                        await handleMiddlewareResult(result);
                     }
                 } catch (err) {
                     const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";
