@@ -21,7 +21,9 @@ module.exports = require("./Transport").compose({
                     return false;
                 }
             } else {
-                ctx.arg = ctx.lambda.invoke || {};
+                // TODO: change to this during the next major release:
+                //  ctx.arg = ctx.lambda.invoke || {};
+                ctx.arg = ctx.lambda.invoke.callArg || ctx.lambda.invoke || {};
                 return true;
             }
         },
@@ -54,7 +56,11 @@ module.exports = require("./Transport").compose({
                             headers: event?.headers,
                         };
                     } else {
-                        lambda.invoke = event || {};
+                        // TODO: change to this during the next major release:
+                        //  lambda.invoke = event || {};
+                        lambda.invoke = event?.callArg
+                            ? { callContext: event?.callContext, callArg: event?.callArg }
+                            : event || {};
                     }
 
                     this._handleRequest({ ...defaultCtx, lambda });
@@ -64,8 +70,9 @@ module.exports = require("./Transport").compose({
 
         getProcedureName(ctx) {
             const { isHttp, http, invoke } = ctx.lambda;
-            if (isHttp) return http.path.substr(1);
-            return invoke._?.procedureName || ""; // if no procedureName then it's an introspection
+            // TODO: change to this during the next major release:
+            //  return (isHttp ? http.path.substr(1) : invoke._?.procedureName) || ""; // if no procedureName then it's an introspection
+            return isHttp ? http.path.substr(1) : invoke.callContext?.procedureName || invoke._?.procedureName || ""; // if no procedureName then it's an introspection
         },
 
         isIntrospection(ctx) {
