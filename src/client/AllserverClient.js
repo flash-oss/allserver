@@ -263,6 +263,10 @@ module.exports = require("stampit")({
         },
 
         async call(procedureName, arg) {
+            if (!arg) arg = {};
+            if (!arg._) arg._ = {};
+            arg._.procedureName = procedureName;
+
             const transport = this[p].transport;
             const defaultCtx = { procedureName, arg, client: this };
             const ctx = transport.createCallContext(defaultCtx);

@@ -123,6 +123,10 @@ module.exports = require("stampit")({
             ctx.isIntrospection = this.transport.isIntrospection(ctx);
             if (!ctx.isIntrospection && ctx.procedureName) ctx.procedure = this.procedures[ctx.procedureName];
 
+            if (!ctx.arg) ctx.arg = {};
+            if (!ctx.arg._) ctx.arg._ = {};
+            if (!ctx.arg._.procedureName) ctx.arg._.procedureName = ctx.procedureName;
+
             await this._callMiddlewares(ctx, "before");
 
             if (!ctx.result) {

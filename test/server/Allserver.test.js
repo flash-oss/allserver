@@ -272,6 +272,7 @@ describe("Allserver", () => {
                     before(ctx) {
                         assert.strictEqual(this, server, "The `this` context must be the server itself");
                         assert.deepStrictEqual(ctx, {
+                            arg: { _: { procedureName: "testMethod" } },
                             callNumber: 0,
                             procedure: server.procedures.testMethod,
                             procedureName: "testMethod",
@@ -377,6 +378,7 @@ describe("Allserver", () => {
                     after(ctx) {
                         assert.strictEqual(this, server, "The `this` context must be the server itself");
                         assert.deepStrictEqual(ctx, {
+                            arg: { _: { procedureName: "testMethod" } },
                             callNumber: 0,
                             procedure: server.procedures.testMethod,
                             procedureName: "testMethod",
@@ -404,7 +406,7 @@ describe("Allserver", () => {
                 let logged = false;
                 const server = Allserver({
                     logger: {
-                        error(err,code) {
+                        error(err, code) {
                             assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
                             assert.strictEqual(err.message, "Handle me please");
                             logged = true;

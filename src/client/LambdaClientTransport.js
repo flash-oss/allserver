@@ -28,13 +28,10 @@ module.exports = require("./ClientTransport").compose({
             return result;
         },
 
-        async call({ procedureName, lambda }) {
+        async call(ctx) {
             let promise = this.awsSdkLambdaClient.invoke({
                 FunctionName: this.uri.substring("lambda://".length),
-                Payload: JSON.stringify({
-                    callContext: { ...lambda.callContext, procedureName },
-                    callArg: lambda.callArg,
-                }),
+                Payload: JSON.stringify(ctx.arg),
             });
             if (typeof promise.promise === "function") promise = promise.promise(); // AWS SDK v2 adoption
             const invocationResponse = await promise;
@@ -44,10 +41,7 @@ module.exports = require("./ClientTransport").compose({
         createCallContext(defaultCtx) {
             return {
                 ...defaultCtx,
-                lambda: {
-                    callContext: {},
-                    callArg: defaultCtx.arg,
-                },
+                lambda: {},
             };
         },
     },
