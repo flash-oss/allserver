@@ -91,16 +91,32 @@ module.exports = require("stampit")({
             }
         },
 
-        async _callMiddlewares(ctx, middlewareType) {
-            if (!this[middlewareType]) return;
-
-            const middlewares = [].concat(this[middlewareType]).filter(isFunction);
-            for (const middleware of middlewares) {
+        async _callMiddlewares(ctx, middlewareType, next) {
+            const runMiddlewares = async (middlewares) => {
+                if (!middlewares?.length) {
+                    // no middlewares to run
+                    if (next) return await next();
+                    return;
+                }
+                const middleware = middlewares[0];
                 try {
-                    const result = await middleware.call(this, ctx);
-                    if (result !== undefined) {
-                        ctx.result = result;
-                        break;
+                    if (middleware.length > 1) {
+                        await middleware.call(this, ctx, async (result) => {
+                            if (result !== undefined) {
+                                ctx.result = result;
+                                // Do not call any more middlewares
+                            } else {
+                                await runMiddlewares(middlewares.slice(1));
+                            }
+                        });
+                    } else {
+                        const result = await middleware.call(this, ctx);
+                        if (result !== undefined) {
+                            ctx.result = result;
+                            // Do not call any more middlewares
+                        } else {
+                            await runMiddlewares(middlewares.slice(1));
+                        }
                     }
                 } catch (err) {
                     const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";
@@ -111,9 +127,14 @@ module.exports = require("stampit")({
                         code,
                         message: `'${err.message}' error in '${middlewareType}' middleware`,
                     };
-                    return;
+                    // Do not call any more middlewares
+                    if (next) return await next();
                 }
-            }
+            };
+
+            const middlewares = [].concat(this[middlewareType]).filter(isFunction);
+
+            return await runMiddlewares(middlewares);
         },
 
         async handleCall(ctx) {
@@ -127,18 +148,18 @@ module.exports = require("stampit")({
             if (!ctx.arg._) ctx.arg._ = {};
             if (!ctx.arg._.procedureName) ctx.arg._.procedureName = ctx.procedureName;
 
-            await this._callMiddlewares(ctx, "before");
-
-            if (!ctx.result) {
-                if (ctx.isIntrospection) {
-                    await this._introspect(ctx);
-                } else {
-                    await this._callProcedure(ctx);
+            await this._callMiddlewares(ctx, "before", async () => {
+                if (!ctx.result) {
+                    if (ctx.isIntrospection) {
+                        await this._introspect(ctx);
+                    } else {
+                        await this._callProcedure(ctx);
+                    }
                 }
-            }
 
-            // Warning! This call might overwrite an existing result.
-            await this._callMiddlewares(ctx, "after");
+                // Warning! This call might overwrite an existing result.
+                await this._callMiddlewares(ctx, "after");
+            });
 
             return this.transport.reply(ctx);
         },
