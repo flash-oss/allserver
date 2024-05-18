@@ -36,6 +36,7 @@ module.exports = require("./ClientTransport").compose({
                 Payload: JSON.stringify({
                     callContext: { ...ctx.lambda.callContext, procedureName: ctx.procedureName },
                     callArg: ctx.lambda.callArg,
+                    ...ctx.arg,
                 }),
             });
             if (typeof promise.promise === "function") promise = promise.promise(); // AWS SDK v2 adoption
