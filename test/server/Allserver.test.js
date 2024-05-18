@@ -1,4 +1,5 @@
 const assert = require("assert");
+const cls = require("cls-hooked");
 
 const VoidTransport = require("stampit")({
     methods: {
@@ -293,6 +294,7 @@ describe("Allserver", () => {
 
             it("should handle exceptions from 'before'", async () => {
                 let logged = false;
+                let lastMiddlewareCalled = false;
                 const server = Allserver({
                     logger: {
                         error(err, code) {
@@ -301,15 +303,21 @@ describe("Allserver", () => {
                             logged = true;
                         },
                     },
-                    before() {
-                        throw new Error("Handle me please");
-                    },
+                    before: [
+                        () => {
+                            throw new Error("Handle me please");
+                        },
+                        () => {
+                            lastMiddlewareCalled = true;
+                        },
+                    ],
                 });
 
                 let ctx = { void: { proc: "testMethod" } };
                 await server.handleCall(ctx);
 
                 assert(logged);
+                assert.strictEqual(lastMiddlewareCalled, false);
                 assert.deepStrictEqual(ctx.result, {
                     success: false,
                     code: "ALLSERVER_MIDDLEWARE_ERROR",
@@ -368,6 +376,99 @@ describe("Allserver", () => {
                 await server.handleCall(ctx);
 
                 assert(replied);
+            });
+
+            it("should not call procedure if 'before' throws", async () => {
+                let replied = false;
+                let procCalled = false;
+                const MockedTransport = VoidTransport.methods({
+                    async reply() {
+                        replied = true;
+                    },
+                });
+                const server = Allserver({
+                    logger: { error() {} },
+                    transport: MockedTransport(),
+                    before() {
+                        throw new Error("Handle me please");
+                    },
+                    procedures: {
+                        testMethod() {
+                            procCalled = true;
+                            assert.fail("should not be called");
+                        },
+                    },
+                });
+
+                let ctx = { void: { proc: "testMethod" } };
+                await server.handleCall(ctx);
+
+                assert(!procCalled);
+                assert(replied);
+            });
+
+            it("should preserve async_hooks context in 'before'", async () => {
+                const cls = require("cls-hooked");
+                const spaceName = "allserver";
+                const session = cls.getNamespace(spaceName) || cls.createNamespace(spaceName);
+                function getTraceId() {
+                    if (session?.active) {
+                        return session.get("traceId") || "";
+                    }
+
+                    return "";
+                }
+                function setTraceIdAndRunFunction(traceId, func, ...args) {
+                    return new Promise((resolve, reject) => {
+                        session.run(async () => {
+                            session.set("traceId", traceId);
+
+                            try {
+                                const result = await func(...args);
+                                resolve(result);
+                            } catch (err) {
+                                reject(err);
+                            }
+                        });
+                    });
+                }
+                let called = [];
+                const server = Allserver({
+                    before: [
+                        (ctx, next) => {
+                            const traceId = ctx.arg._.traceId;
+                            if (traceId) {
+                                setTraceIdAndRunFunction(traceId, next);
+                            } else {
+                                next();
+                            }
+                        },
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(1);
+                            return undefined;
+                        },
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(2);
+                            return { success: false, code: "BAD_AUTH_OR_SOMETHING", message: "Bad auth or something" };
+                        },
+                        () => {
+                            called.push(3);
+                            assert.fail("should not be called");
+                        },
+                    ],
+                });
+
+                let ctx = { void: { proc: "testMethod" }, arg: { _: { traceId: "my-random-trace-id" } } };
+                await server.handleCall(ctx);
+
+                assert.deepStrictEqual(called, [1, 2]);
+                assert.deepStrictEqual(ctx.result, {
+                    success: false,
+                    code: "BAD_AUTH_OR_SOMETHING",
+                    message: "Bad auth or something",
+                });
             });
         });
 
@@ -479,6 +580,72 @@ describe("Allserver", () => {
                 await server.handleCall(ctx);
 
                 assert(replied);
+            });
+
+            it("should preserve async_hooks context in 'after'", async () => {
+                const cls = require("cls-hooked");
+                const spaceName = "allserver";
+                const session = cls.getNamespace(spaceName) || cls.createNamespace(spaceName);
+                function getTraceId() {
+                    if (session?.active) {
+                        return session.get("traceId") || "";
+                    }
+
+                    return "";
+                }
+                function setTraceIdAndRunFunction(traceId, func, ...args) {
+                    return new Promise((resolve, reject) => {
+                        session.run(async () => {
+                            session.set("traceId", traceId);
+
+                            try {
+                                const result = await func(...args);
+                                resolve(result);
+                            } catch (err) {
+                                reject(err);
+                            }
+                        });
+                    });
+                }
+                let called = [];
+                const server = Allserver({
+                    before: [
+                        (ctx, next) => {
+                            const traceId = ctx.arg._.traceId;
+                            if (traceId) {
+                                setTraceIdAndRunFunction(traceId, next);
+                            } else {
+                                next();
+                            }
+                        },
+                    ],
+                    procedures: {
+                        testMethod() {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push("testMethod");
+                        },
+                    },
+                    after: [
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(1);
+                        },
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(2);
+                        },
+                    ],
+                });
+
+                let ctx = { void: { proc: "testMethod" }, arg: { _: { traceId: "my-random-trace-id" } } };
+                await server.handleCall(ctx);
+
+                assert.deepStrictEqual(called, ["testMethod", 1, 2]);
+                assert.deepStrictEqual(ctx.result, {
+                    success: true,
+                    code: "SUCCESS",
+                    message: "Success",
+                });
             });
         });
 
