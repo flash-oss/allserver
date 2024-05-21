@@ -1,5 +1,30 @@
 const assert = require("assert");
 
+const cls = require("cls-hooked");
+const spaceName = "allserver";
+const session = cls.getNamespace(spaceName) || cls.createNamespace(spaceName);
+function getTraceId() {
+    if (session?.active) {
+        return session.get("traceId") || "";
+    }
+
+    return "";
+}
+function setTraceIdAndRunFunction(traceId, func, ...args) {
+    return new Promise((resolve, reject) => {
+        session.run(async () => {
+            session.set("traceId", traceId);
+
+            try {
+                const result = await func(...args);
+                resolve(result);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    });
+}
+
 const VoidClientTransport = require("../..").ClientTransport.compose({
     props: {
         uri: "void://localhost",
@@ -322,6 +347,42 @@ describe("AllserverClient", () => {
                     error: err,
                 });
             });
+
+            it("should preserve async_hooks context in 'before'", async () => {
+                let called = [];
+                const client = AllserverClient({
+                    transport: VoidClientTransport(),
+                    autoIntrospect: false,
+                    before: [
+                        (ctx, next) => {
+                            setTraceIdAndRunFunction("my-random-trace-id", next);
+                        },
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(1);
+                            return undefined;
+                        },
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(2);
+                            return { success: false, code: "BAD_AUTH_OR_SOMETHING", message: "Bad auth or something" };
+                        },
+                        () => {
+                            called.push(3);
+                            assert.fail("should not be called");
+                        },
+                    ],
+                });
+
+                const result = await client.foo();
+
+                assert.deepStrictEqual(result, {
+                    success: false,
+                    code: "BAD_AUTH_OR_SOMETHING",
+                    message: "Bad auth or something",
+                });
+                assert.deepStrictEqual(called, [1, 2]);
+            });
         });
 
         describe("'after'", () => {
@@ -422,6 +483,33 @@ describe("AllserverClient", () => {
                     message: "'after' is throwing",
                     error: err,
                 });
+            });
+
+            it("should preserve async_hooks context in 'after'", async () => {
+                let called = [];
+                const client = AllserverClient({
+                    transport: VoidClientTransport(),
+                    autoIntrospect: false,
+                    before: [
+                        (ctx, next) => {
+                            setTraceIdAndRunFunction("my-random-trace-id", next);
+                        },
+                    ],
+                    after: [
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(1);
+                        },
+                        () => {
+                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            called.push(2);
+                        },
+                    ],
+                });
+
+                await client.foo();
+
+                assert.deepStrictEqual(called, [1, 2]);
             });
         });
 

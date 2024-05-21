@@ -1,5 +1,29 @@
 const assert = require("assert");
+
 const cls = require("cls-hooked");
+const spaceName = "allserver";
+const session = cls.getNamespace(spaceName) || cls.createNamespace(spaceName);
+function getTraceId() {
+    if (session?.active) {
+        return session.get("traceId") || "";
+    }
+
+    return "";
+}
+function setTraceIdAndRunFunction(traceId, func, ...args) {
+    return new Promise((resolve, reject) => {
+        session.run(async () => {
+            session.set("traceId", traceId);
+
+            try {
+                const result = await func(...args);
+                resolve(result);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    });
+}
 
 const VoidTransport = require("stampit")({
     methods: {
@@ -408,30 +432,6 @@ describe("Allserver", () => {
             });
 
             it("should preserve async_hooks context in 'before'", async () => {
-                const cls = require("cls-hooked");
-                const spaceName = "allserver";
-                const session = cls.getNamespace(spaceName) || cls.createNamespace(spaceName);
-                function getTraceId() {
-                    if (session?.active) {
-                        return session.get("traceId") || "";
-                    }
-
-                    return "";
-                }
-                function setTraceIdAndRunFunction(traceId, func, ...args) {
-                    return new Promise((resolve, reject) => {
-                        session.run(async () => {
-                            session.set("traceId", traceId);
-
-                            try {
-                                const result = await func(...args);
-                                resolve(result);
-                            } catch (err) {
-                                reject(err);
-                            }
-                        });
-                    });
-                }
                 let called = [];
                 const server = Allserver({
                     before: [
@@ -583,30 +583,6 @@ describe("Allserver", () => {
             });
 
             it("should preserve async_hooks context in 'after'", async () => {
-                const cls = require("cls-hooked");
-                const spaceName = "allserver";
-                const session = cls.getNamespace(spaceName) || cls.createNamespace(spaceName);
-                function getTraceId() {
-                    if (session?.active) {
-                        return session.get("traceId") || "";
-                    }
-
-                    return "";
-                }
-                function setTraceIdAndRunFunction(traceId, func, ...args) {
-                    return new Promise((resolve, reject) => {
-                        session.run(async () => {
-                            session.set("traceId", traceId);
-
-                            try {
-                                const result = await func(...args);
-                                resolve(result);
-                            } catch (err) {
-                                reject(err);
-                            }
-                        });
-                    });
-                }
                 let called = [];
                 const server = Allserver({
                     before: [

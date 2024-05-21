@@ -653,12 +653,10 @@ import { Lambda } from "@aws-sdk/client-lambda";
 const invocationResponse = await new Lambda().invoke({
   FunctionName: "my-lambda-name",
   Payload: JSON.stringify({
+    _: { procedureName: "updateUser" },
     id: "123412341234123412341234",
     firstName: "Fred",
     lastName: "Flinstone",
-  }),
-  ClientContext: JSON.stringify({
-    procedureName: "updateUser",
   }),
 });
 const { success, code, message, user } = JSON.parse(invocationResponse.Payload);
@@ -667,7 +665,7 @@ const { success, code, message, user } = JSON.parse(invocationResponse.Payload);
 Alternatively, you can call the same procedure using the `aws` CLI:
 
 ```shell
-aws lambda invoke --function-name my-lambda-name --client-context '{"procedureName":"updateUser"}' --payload '{"id":"123412341234123412341234","firstName":"Fred","lastName":"Flinstone"}'
+aws lambda invoke --function-name my-lambda-name --payload '{"_":{"procedureName":"updateUser"},"id":"123412341234123412341234","firstName":"Fred","lastName":"Flinstone"}}'
 ```
 
 ## `AllserverClient` options

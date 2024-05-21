@@ -213,40 +213,55 @@ module.exports = require("stampit")({
             const defaultCtx = { client: this, isIntrospection: true };
             const ctx = transport.createCallContext(defaultCtx);
 
-            await this._callMiddlewares(ctx, "before");
-
-            if (!ctx.result) {
-                try {
-                    // This is supposed to be executed only once (per uri) unless it throws.
-                    // There are only 3 situations when this throws:
-                    // * the "introspect" method not found on server,
-                    // * the network request is malformed,
-                    // * couldn't connect to the remote host.
-                    ctx.result = await transport.introspect(ctx);
-                } catch (err) {
-                    ctx.result = {
-                        success: false,
-                        code: "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
-                        message: `Couldn't introspect ${transport.uri} due to: ${err.message}`,
-                        noNetToServer: Boolean(err.noNetToServer),
-                        error: err,
-                    };
+            await this._callMiddlewares(ctx, "before", async () => {
+                if (!ctx.result) {
+                    try {
+                        // This is supposed to be executed only once (per uri) unless it throws.
+                        // There are only 3 situations when this throws:
+                        // * the "introspect" method not found on server,
+                        // * the network request is malformed,
+                        // * couldn't connect to the remote host.
+                        ctx.result = await transport.introspect(ctx);
+                    } catch (err) {
+                        ctx.result = {
+                            success: false,
+                            code: "ALLSERVER_CLIENT_INTROSPECTION_FAILED",
+                            message: `Couldn't introspect ${transport.uri} due to: ${err.message}`,
+                            noNetToServer: Boolean(err.noNetToServer),
+                            error: err,
+                        };
+                    }
                 }
-            }
 
-            await this._callMiddlewares(ctx, "after");
+                await this._callMiddlewares(ctx, "after");
+            });
 
             return ctx.result;
         },
 
-        async _callMiddlewares(ctx, middlewareType) {
-            const middlewares = [].concat(this[p][middlewareType]).filter(isFunction);
-            for (const middleware of middlewares) {
-                try {
-                    const result = await middleware.call(this, ctx);
+        async _callMiddlewares(ctx, middlewareType, next) {
+            const runMiddlewares = async (middlewares) => {
+                if (!middlewares?.length) {
+                    // no middlewares to run
+                    if (next) return await next();
+                    return;
+                }
+                const middleware = middlewares[0];
+                async function handleMiddlewareResult(result) {
                     if (result !== undefined) {
                         ctx.result = result;
-                        break;
+                        // Do not call any more middlewares
+                    } else {
+                        await runMiddlewares(middlewares.slice(1));
+                    }
+                }
+                try {
+                    if (middleware.length > 1) {
+                        // This middleware accepts more than one argument
+                        await middleware.call(this, ctx, handleMiddlewareResult);
+                    } else {
+                        const result = await middleware.call(this, ctx);
+                        await handleMiddlewareResult(result);
                     }
                 } catch (err) {
                     if (!this[p].neverThrow) throw err;
@@ -257,9 +272,13 @@ module.exports = require("stampit")({
                         message = `The '${middlewareType}' middleware error while calling '${ctx.procedureName}' procedure: ${err.message}`;
                     }
                     ctx.result = { success: false, code, message, error: err };
-                    return;
+                    // Do not call any more middlewares
+                    if (next) return await next();
                 }
-            }
+            };
+
+            const middlewares = [].concat(this[p][middlewareType]).filter(isFunction);
+            return await runMiddlewares(middlewares);
         },
 
         async call(procedureName, arg) {
@@ -271,24 +290,24 @@ module.exports = require("stampit")({
             const defaultCtx = { procedureName, arg, client: this };
             const ctx = transport.createCallContext(defaultCtx);
 
-            await this._callMiddlewares(ctx, "before");
+            await this._callMiddlewares(ctx, "before", async () => {
+                if (!ctx.result) {
+                    try {
+                        ctx.result = await transport.call(ctx);
+                    } catch (err) {
+                        if (!this[p].neverThrow) throw err;
 
-            if (!ctx.result) {
-                try {
-                    ctx.result = await transport.call(ctx);
-                } catch (err) {
-                    if (!this[p].neverThrow) throw err;
-
-                    let { code, message } = err;
-                    if (!err.code || err.noNetToServer) {
-                        code = "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE";
-                        message = `Couldn't reach remote procedure ${ctx.procedureName} due to: ${err.message}`;
+                        let { code, message } = err;
+                        if (!err.code || err.noNetToServer) {
+                            code = "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE";
+                            message = `Couldn't reach remote procedure ${ctx.procedureName} due to: ${err.message}`;
+                        }
+                        ctx.result = { success: false, code, message, error: err };
                     }
-                    ctx.result = { success: false, code, message, error: err };
                 }
-            }
 
-            await this._callMiddlewares(ctx, "after");
+                await this._callMiddlewares(ctx, "after");
+            });
 
             return ctx.result;
         },
