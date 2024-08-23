@@ -41,7 +41,7 @@ module.exports = require("./ClientTransport").compose({
             });
             if (typeof promise.promise === "function") promise = promise.promise(); // AWS SDK v2 adoption
             const invocationResponse = await promise;
-            return JSON.parse(invocationResponse.Payload);
+            return JSON.parse(Buffer.from(invocationResponse.Payload));
         },
 
         createCallContext(defaultCtx) {
