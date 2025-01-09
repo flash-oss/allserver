@@ -6,8 +6,11 @@ Think of Remote Procedure Calls using exactly the same client and server code bu
 
 Should be used in (micro)services where JavaScript is able to run - your computer, Docker, k8s, virtual machines, serverless functions (Lambdas, Google Cloud Functions, Azure Functions, etc), RaspberryPI, SharedWorker, thread, you name it.
 
+> Uber [moved](https://www.infoq.com/news/2023/10/uber-up-cloud-microservices/) most of its containerized microservices from µDeploy to a new multi-cloud platform named Up in preparation for migrating a considerable portion of its compute footprint to the cloud. **The company spent two years** working on making its many microservices portable to migrate between different computing infrastructures and container management platforms.
+
 Superpowers the `Allserver` gives you:
 
+- Move your code around infrastructures, deployment types, runtimes, platforms, etc with ease.
 - Call gRPC server methods from browser/curl/Postman.
 - Run your HTTP server as gRPC with a single line change (almost).
 - Serve same logic via HTTP and gRPC (or more) simultaneously in the same node.js process.
