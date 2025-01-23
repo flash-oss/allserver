@@ -5,4 +5,5 @@ module.exports = {
     isFunction: (o) => is(o, "function"),
     isObject: (o) => is(o, "object"),
     isPlainObject: (o) => o && o.constructor === Object,
+    uniq: (a) => Array.from(new Set(a)),
 };

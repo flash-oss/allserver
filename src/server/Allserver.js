@@ -1,17 +1,20 @@
 const assert = require("assert");
 
-const { isObject, isBoolean, isFunction } = require("../util");
+const { isObject, isBoolean, isFunction, uniq } = require("../util");
 
 module.exports = require("stampit")({
     name: "Allserver",
+
+    deepProps: {
+        before: null,
+        after: null,
+    },
 
     props: {
         procedures: {},
         transport: null,
         logger: console,
         introspection: true,
-        before: null,
-        after: null,
 
         callsCount: 0,
     },
@@ -21,8 +24,8 @@ module.exports = require("stampit")({
         this.transport = transport || this.transport || require("./HttpTransport")();
         this.logger = logger || this.logger;
         this.introspection = introspection != null ? introspection : this.introspection;
-        this.before = before || this.before;
-        this.after = after || this.after;
+        if (before) this.before = uniq([].concat(this.before).concat(before).filter(isFunction));
+        if (after) this.after = uniq([].concat(this.after).concat(after).filter(isFunction));
 
         this._validateProcedures();
     },
@@ -178,7 +181,13 @@ module.exports = require("stampit")({
 
     statics: {
         defaults({ procedures, transport, logger, introspection, before, after } = {}) {
-            return this.props({ procedures, transport, logger, introspection, before, after });
+            if (before != null) before = (Array.isArray(before) ? before : [before]).filter(isFunction);
+            if (after != null) after = (Array.isArray(after) ? after : [after]).filter(isFunction);
+
+            return this.compose({
+                props: { procedures, transport, logger, introspection },
+                deepProps: { before, after },
+            });
         },
     },
 });

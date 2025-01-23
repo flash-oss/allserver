@@ -1,4 +1,4 @@
-const assert = require("assert");
+const assert = require("node:assert/strict");
 
 const cls = require("cls-hooked");
 const spaceName = "allserver";
@@ -676,17 +676,40 @@ describe("Allserver", () => {
 
             const NewServer = Allserver.defaults({ procedures, transport, logger, introspection, before, after });
 
+            function propsAreOk(server) {
+                assert.strictEqual(server.procedures, procedures);
+                assert.strictEqual(server.transport, transport);
+                assert.strictEqual(server.logger, logger);
+                assert.strictEqual(server.introspection, introspection);
+                assert.deepStrictEqual(server.before, [before]);
+                assert.deepStrictEqual(server.after, [after]);
+            }
+
+            propsAreOk(NewServer());
+        });
+
+        it("should merge middlewares if supplied in the constructor too", () => {
+            const procedures = {};
+            const transport = VoidTransport();
+            const logger = {};
+            const introspection = false;
+            const before = () => {};
+            const before2 = () => {};
+            const after = () => {};
+            const after2 = () => {};
+
+            const NewServer = Allserver.defaults({ procedures, transport, logger, introspection, before, after });
+
             function propsAreOk(props) {
                 assert.strictEqual(props.procedures, procedures);
                 assert.strictEqual(props.transport, transport);
                 assert.strictEqual(props.logger, logger);
                 assert.strictEqual(props.introspection, introspection);
-                assert.strictEqual(props.before, before);
-                assert.strictEqual(props.after, after);
+                assert.deepStrictEqual(props.before, [before, before2]);
+                assert.deepStrictEqual(props.after, [after, after2]);
             }
 
-            propsAreOk(NewServer.compose.properties);
-            propsAreOk(NewServer());
+            propsAreOk(NewServer({ before: before2, after: after2 }));
         });
 
         it("should create new factory", () => {

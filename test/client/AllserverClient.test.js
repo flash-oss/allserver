@@ -294,10 +294,11 @@ describe("AllserverClient", () => {
             });
 
             it("should allow result override in 'before'", async () => {
+                let defaultMiddlewareCalled = false;
                 const DefaultedAllserverClient = AllserverClient.defaults({
                     callIntrospectedProceduresOnly: false,
                     before() {
-                        assert.fail("Should not reach default middleware(s)");
+                        defaultMiddlewareCalled = true;
                     },
                 });
                 const before = () => {
@@ -307,6 +308,7 @@ describe("AllserverClient", () => {
                 assert.strictEqual(client[p].before.length, 2, "Default middleware should be present");
                 const result = await client.foo();
                 assert.deepStrictEqual(result, "Override result");
+                assert.ok(defaultMiddlewareCalled);
             });
 
             it("should handle rejections from 'before'", async () => {
@@ -431,9 +433,10 @@ describe("AllserverClient", () => {
             });
 
             it("should allow result override in 'after'", async () => {
+                let defaultMiddlewareCalled = false;
                 const DefaultedAllserverClient = AllserverClient.defaults({
                     after() {
-                        assert.fail("Should not reach default middleware(s)");
+                        defaultMiddlewareCalled = true;
                     },
                     callIntrospectedProceduresOnly: false,
                 });
@@ -444,6 +447,7 @@ describe("AllserverClient", () => {
                 assert.strictEqual(client[p].after.length, 2, "Default middleware should be present");
                 const result = await client.foo();
                 assert.deepStrictEqual(result, "Override result");
+                assert.ok(defaultMiddlewareCalled);
             });
 
             it("should handle rejections from 'after'", async () => {
@@ -766,6 +770,32 @@ describe("AllserverClient", () => {
 
             protectedsAreOk(NewClient.compose.deepProperties[p]);
             protectedsAreOk(NewClient({ uri: "void://bla" })[p]);
+        });
+
+        it("should merge middlewares if supplied in the constructor too", () => {
+            const before = () => {};
+            const before2 = () => {};
+            const after = () => {};
+            const after2 = () => {};
+            const NewClient = AllserverClient.defaults({
+                neverThrow: false,
+                dynamicMethods: false,
+                autoIntrospect: false,
+                nameMapper: (a) => a,
+                before,
+                after,
+            });
+
+            function protectedsAreOk(protecteds) {
+                assert.strictEqual(protecteds.neverThrow, false);
+                assert.strictEqual(protecteds.dynamicMethods, false);
+                assert.strictEqual(protecteds.autoIntrospect, false);
+                assert.strictEqual(typeof protecteds.nameMapper, "function");
+                assert.deepStrictEqual(protecteds.before, [before, before2]);
+                assert.deepStrictEqual(protecteds.after, [after, after2]);
+            }
+
+            protectedsAreOk(NewClient({ uri: "void://bla", before: before2, after: after2 })[p]);
         });
 
         it("should create new factory", () => {

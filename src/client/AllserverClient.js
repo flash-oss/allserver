@@ -203,8 +203,8 @@ module.exports = require("stampit")({
             this[p].transport = getTransport()({ uri });
         }
 
-        if (before) this[p].before = [].concat(before).concat(this[p].before);
-        if (after) this[p].after = [].concat(after).concat(this[p].after);
+        if (before) this[p].before = [].concat(this[p].before).concat(before).filter(isFunction);
+        if (after) this[p].after = [].concat(this[p].after).concat(after).filter(isFunction);
     },
 
     methods: {
@@ -335,8 +335,9 @@ module.exports = require("stampit")({
             before,
             after,
         } = {}) {
-            if (before) before = [].concat(before);
-            if (after) after = [].concat(after);
+            if (before != null) before = (Array.isArray(before) ? before : [before]).filter(isFunction);
+            if (after != null) after = (Array.isArray(after) ? after : [after]).filter(isFunction);
+
             return this.deepProps({
                 [p]: {
                     transport,
