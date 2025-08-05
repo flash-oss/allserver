@@ -141,6 +141,8 @@ module.exports = require("stampit")({
         [p]: {
             // The protocol implementation strategy.
             transport: null,
+            // The maximum time to wait until returning the ALLSERVER_CLIENT_TIMEOUT error. 0 means - no timeout.
+            timeout: 0,
             // Disable any exception throwing when calling any methods. Otherwise, throws network and server errors.
             neverThrow: true,
             // Automatically find (introspect) and call corresponding remote procedures. Use only the methods defined in client side.
@@ -173,6 +175,7 @@ module.exports = require("stampit")({
         {
             uri,
             transport,
+            timeout,
             neverThrow,
             dynamicMethods,
             autoIntrospect,
@@ -183,6 +186,7 @@ module.exports = require("stampit")({
         },
         { stamp }
     ) {
+        this[p].timeout = timeout != null ? timeout : this[p].timeout;
         this[p].neverThrow = neverThrow != null ? neverThrow : this[p].neverThrow;
         this[p].dynamicMethods = dynamicMethods != null ? dynamicMethods : this[p].dynamicMethods;
         this[p].autoIntrospect = autoIntrospect != null ? autoIntrospect : this[p].autoIntrospect;
@@ -218,10 +222,10 @@ module.exports = require("stampit")({
                     try {
                         // This is supposed to be executed only once (per uri) unless it throws.
                         // There are only 3 situations when this throws:
-                        // * the "introspect" method not found on server,
-                        // * the network request is malformed,
+                        // * the "introspect" method not found on server, (GRPC)
+                        // * the network request is malformed, (HTTP-like)
                         // * couldn't connect to the remote host.
-                        ctx.result = await transport.introspect(ctx);
+                        ctx.result = await this._callTransport(ctx);
                     } catch (err) {
                         ctx.result = {
                             success: false,
@@ -281,19 +285,41 @@ module.exports = require("stampit")({
             return await runMiddlewares(middlewares);
         },
 
+        _callTransport(ctx) {
+            const transportMethod = ctx.isIntrospection ? "introspect" : "call";
+            // In JavaScript if the `timeout` is null or undefined or some other object this condition will return `false`
+            if (this[p].timeout > 0) {
+                return Promise.race([
+                    this[p].transport[transportMethod](ctx),
+                    new Promise((resolve) =>
+                        setTimeout(
+                            () =>
+                                resolve({
+                                    success: false,
+                                    code: "ALLSERVER_CLIENT_TIMEOUT",
+                                    message: `The remote procedure ${ctx.procedureName} timed out in ${this[p].timeout} ms`,
+                                }),
+                            this[p].timeout
+                        )
+                    ),
+                ]);
+            }
+
+            return this[p].transport[transportMethod](ctx);
+        },
+
         async call(procedureName, arg) {
             if (!arg) arg = {};
             if (!arg._) arg._ = {};
             arg._.procedureName = procedureName;
 
-            const transport = this[p].transport;
             const defaultCtx = { procedureName, arg, client: this };
-            const ctx = transport.createCallContext(defaultCtx);
+            const ctx = this[p].transport.createCallContext(defaultCtx);
 
             await this._callMiddlewares(ctx, "before", async () => {
                 if (!ctx.result) {
                     try {
-                        ctx.result = await transport.call(ctx);
+                        ctx.result = await this._callTransport(ctx);
                     } catch (err) {
                         if (!this[p].neverThrow) throw err;
 

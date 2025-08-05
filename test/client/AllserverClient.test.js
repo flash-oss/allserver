@@ -211,6 +211,18 @@ describe("AllserverClient", () => {
             assert.strictEqual(result.message, "Couldn't reach remote procedure foo due to: Shit happens too");
             assert.strictEqual(result.error.message, "Shit happens too");
         });
+
+        it("should return ALLSERVER_CLIENT_TIMEOUT code on timeouts", async () => {
+            const MockedTransport = VoidClientTransport.methods({
+                call: () => new Promise(() => {}), // never resolving or rejecting promise
+            });
+
+            const client = AllserverClient({ transport: MockedTransport(), timeout: 1 }); // 1 ms timeout for fast unit tests
+            const result = await client.call("doesnt_matter");
+            assert.strictEqual(result.success, false);
+            assert.strictEqual(result.code, "ALLSERVER_CLIENT_TIMEOUT");
+            assert.strictEqual(result.message, "The remote procedure doesnt_matter timed out in 1 ms");
+        });
     });
 
     describe("dynamicMethods", () => {

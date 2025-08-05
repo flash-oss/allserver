@@ -62,17 +62,17 @@
     }
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.1.7",
+    "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.7.5",
-    "bullmq": "^3.10.1",
+    "bullmq": "^3.16.2",
     "cls-hooked": "^4.2.2",
     "eslint": "^8.55.0",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "lambda-local": "^1.7.3",
     "micro": "^10.0.1",
-    "mocha": "^10.2.0",
+    "mocha": "^11.7.1",
     "node-fetch": "^2.6.9",
-    "nyc": "^15.1.0",
+    "nyc": "^17.1.0",
     "prettier": "^2.1.1"
   },
   "dependencies": {

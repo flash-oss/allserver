@@ -27,6 +27,9 @@ const procedures = {
         // call database ...
         return { success: true, code: "CREATED", user: { id: String(Math.random()).substr(2), firstName, lastName } };
     },
+    forcedTimeout() {
+        return new Promise((resolve) => setTimeout(resolve, 2)); // resolve in 2ms, which is longer than the timeout of 1ms
+    },
 };
 
 async function callClientMethods(client) {
@@ -77,6 +80,13 @@ async function callClientMethods(client) {
     assert.strictEqual(response.success, false);
     assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
     assert.strictEqual(response.message, "Procedure 'unexist' not found via introspection");
+
+    client[Symbol.for("AllserverClient")].timeout = 1;
+    response = await client.forcedTimeout({});
+    assert.strictEqual(response.success, false);
+    assert.strictEqual(response.code, "ALLSERVER_CLIENT_TIMEOUT");
+    assert.strictEqual(response.message, "The remote procedure forcedTimeout timed out in 1 ms");
+    client[Symbol.for("AllserverClient")].timeout = 0;
 }
 
 let {
@@ -92,7 +102,7 @@ let {
     GrpcClientTransport,
     LambdaClientTransport,
 } = require("../..");
-Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers
+Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers console because we test error cases here
 
 describe("integration", function () {
     this.timeout(5000); // Needed for CI on Windows.
@@ -132,7 +142,7 @@ describe("integration", function () {
             assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
             assert.strictEqual(response.error.status, 500);
 
-            await httpServer.stop();
+            httpServer.stop();
         });
 
         it("should behave with node-fetch", async () => {
@@ -168,7 +178,7 @@ describe("integration", function () {
 
             const httpClient = AllserverClient({ uri: "http://localhost:40001" });
             await callClientMethods(httpClient);
-            await httpServer.stop();
+            httpServer.stop();
         });
     });
 
@@ -211,10 +221,8 @@ describe("integration", function () {
             assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
             assert.strictEqual(response.error.status, 500);
 
-            await new Promise((r) => {
-                if (server.closeIdleConnections) server.closeIdleConnections();
-                server.close(r);
-            });
+            if (server.closeIdleConnections) server.closeIdleConnections();
+            server.close();
         });
 
         it("should behave with node-fetch", async () => {
@@ -256,10 +264,8 @@ describe("integration", function () {
             const httpClient = AllserverClient({ uri: "http://localhost:40003/express/allsever" });
             await callClientMethods(httpClient);
 
-            await new Promise((r) => {
-                if (server.closeIdleConnections) server.closeIdleConnections();
-                server.close(r);
-            });
+            if (server.closeIdleConnections) server.closeIdleConnections();
+            server.close();
         });
     });
 
