@@ -81,8 +81,6 @@ module.exports = require("./Transport").compose({
                     err ? reject(err) : resolve(result)
                 );
             });
-
-            return this.server.start();
         },
         stopServer() {
             return new Promise((r) => this.server.tryShutdown(r));
