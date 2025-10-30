@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "lint": "oxlint ./",
-    "test": "mocha",
+    "test": "node --test  --test-force-exit --trace-deprecation",
     "cov": "nyc --reporter=html node --run test"
   },
   "keywords": [
@@ -65,16 +65,11 @@
     "express": "^4.21.2",
     "lambda-local": "^1.7.3",
     "micro": "^10.0.1",
-    "mocha": "^11.7.1",
     "nyc": "^17.1.0",
     "oxlint": "^1.25.0",
     "prettier": "^2.1.1"
   },
   "dependencies": {
     "stampit": "^5.0.1"
-  },
-  "mocha": {
-    "recursive": true,
-    "exit": true
   }
 }

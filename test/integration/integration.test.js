@@ -1,4 +1,5 @@
 const assert = require("node:assert");
+const { describe, it } = require("node:test");
 
 const procedures = {
     sayHello({ name }) {
@@ -28,7 +29,7 @@ const procedures = {
         return { success: true, code: "CREATED", user: { id: String(Math.random()).substr(2), firstName, lastName } };
     },
     forcedTimeout() {
-        return new Promise((resolve) => setTimeout(resolve, 2)); // resolve in 2ms, which is longer than the timeout of 1ms
+        return new Promise((resolve) => setTimeout(resolve, 10)); // resolve in 10ms, which is longer than the timeout of 1ms
     },
 };
 
@@ -105,8 +106,6 @@ let {
 Allserver = Allserver.props({ logger: { error() {} } }); // silence the servers console because we test error cases here
 
 describe("integration", function () {
-    this.timeout(5000); // Needed for CI on Windows.
-
     describe("http", () => {
         const fetch = globalThis.fetch;
 
@@ -142,7 +141,7 @@ describe("integration", function () {
             assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
             assert.strictEqual(response.error.status, 500);
 
-            httpServer.stop();
+            await httpServer.stop();
         });
 
         it("should behave with fetch", async () => {
@@ -178,7 +177,7 @@ describe("integration", function () {
 
             const httpClient = AllserverClient({ uri: "http://localhost:40001" });
             await callClientMethods(httpClient);
-            httpServer.stop();
+            await httpServer.stop();
         });
     });
 
@@ -222,7 +221,7 @@ describe("integration", function () {
             assert.strictEqual(response.error.status, 500);
 
             if (server.closeIdleConnections) server.closeIdleConnections();
-            server.close();
+            await server.close();
         });
 
         it("should behave with fetch", async () => {
@@ -265,7 +264,7 @@ describe("integration", function () {
             await callClientMethods(httpClient);
 
             if (server.closeIdleConnections) server.closeIdleConnections();
-            server.close();
+            await server.close();
         });
     });
 
@@ -448,4 +447,7 @@ describe("integration", function () {
             await bullmqServer.stop();
         });
     });
+    {
+        timeout: 5000;
+    }
 });

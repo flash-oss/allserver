@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const { describe, it } = require("node:test");
 
 const cls = require("cls-hooked");
 const spaceName = "allserver";
