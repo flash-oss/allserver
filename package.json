@@ -4,7 +4,7 @@
   "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic. DX-first.",
   "main": "src/index.js",
   "scripts": {
-    "lint": "eslint ./",
+    "lint": "oxlint ./",
     "test": "mocha",
     "cov": "nyc --reporter=html npm run test"
   },
@@ -66,28 +66,17 @@
     "@grpc/proto-loader": "^0.8.0",
     "bullmq": "^5.56.9",
     "cls-hooked": "^4.2.2",
-    "eslint": "^8.57.1",
     "express": "^4.21.2",
     "lambda-local": "^1.7.3",
     "micro": "^10.0.1",
     "mocha": "^11.7.1",
     "node-fetch": "^2.6.9",
     "nyc": "^17.1.0",
+    "oxlint": "^1.25.0",
     "prettier": "^2.1.1"
   },
   "dependencies": {
     "stampit": "^4.3.1"
-  },
-  "eslintConfig": {
-    "parserOptions": {
-      "ecmaVersion": 2022
-    },
-    "env": {
-      "es6": true,
-      "node": true,
-      "mocha": true
-    },
-    "extends": "eslint:recommended"
   },
   "mocha": {
     "recursive": true,
