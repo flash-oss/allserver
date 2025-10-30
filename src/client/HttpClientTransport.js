@@ -4,7 +4,7 @@ module.exports = require("./ClientTransport").compose({
     name: "HttpClientTransport",
 
     props: {
-        fetch: (typeof globalThis !== "undefined" && globalThis.fetch) || require("node-fetch"),
+        fetch: globalThis.fetch,
         headers: {
             "Content-Type": "application/json; charset=utf-8",
         },

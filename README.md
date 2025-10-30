@@ -162,7 +162,7 @@ npm i allserver express
 Optionally, you can use Allserver's built-in client:
 
 ```shell
-npm i allserver node-fetch
+npm i allserver
 ```
 
 Or do HTTP requests using any module you like.
@@ -390,10 +390,8 @@ exports.handler = Allserver({
 
 #### Using built-in client
 
-You'd need to install `node-fetch` optional dependency.
-
 ```shell
-npm i allserver node-fetch
+npm i allserver
 ```
 
 Note, that this code is **same** as the gRPC client code example below!

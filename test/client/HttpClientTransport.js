@@ -21,14 +21,14 @@ describe("HttpClientTransport", () => {
 
     describe("#call", () => {
         it("should add response to context", async () => {
-            const { Response } = require("node-fetch");
             const MockedTransport = HttpClientTransport.props({
                 async fetch(uri, options) {
                     assert.strictEqual(uri, "http://localhost/");
                     assert.strictEqual(options.method, "POST");
-                    const response = new Response();
-                    response.json = () => ({ success: true, code: "OK", message: "called" });
-                    return response;
+                    return new globalThis.Response(JSON.stringify({ success: true, code: "OK", message: "called" }), {
+                        status: 200,
+                        headers: { "Content-Type": "application/json" },
+                    });
                 },
             });
 
@@ -37,7 +37,7 @@ describe("HttpClientTransport", () => {
             const ctx = transport.createCallContext({ procedureName: "" });
             const result = await transport.call(ctx);
 
-            assert(ctx.http.response instanceof Response);
+            assert(ctx.http.response instanceof globalThis.Response);
             assert.deepStrictEqual(result, { success: true, code: "OK", message: "called" });
         });
     });

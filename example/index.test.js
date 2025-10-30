@@ -33,7 +33,6 @@ setTimeout(async () => {
     const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40000 }) });
     httpServer.start();
 
-    // const fetch = require("node-fetch");
     // const response = await (
     //     await fetch("http://localhost:40000/sayHello", { method: "POST", body: JSON.stringify({ name: user }) })
     // ).json();

@@ -108,7 +108,7 @@ describe("integration", function () {
     this.timeout(5000); // Needed for CI on Windows.
 
     describe("http", () => {
-        const fetch = require("node-fetch");
+        const fetch = globalThis.fetch;
 
         it("should behave with AllserverClient", async () => {
             const httpClient = AllserverClient({ uri: "http://localhost:40000" });
@@ -145,7 +145,7 @@ describe("integration", function () {
             httpServer.stop();
         });
 
-        it("should behave with node-fetch", async () => {
+        it("should behave with fetch", async () => {
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40001 }) });
             await httpServer.start();
 
@@ -184,7 +184,7 @@ describe("integration", function () {
 
     describe("express", () => {
         const express = require("express");
-        const fetch = require("node-fetch");
+        const fetch = globalThis.fetch;
 
         it("should behave with AllserverClient", async () => {
             const httpClient = AllserverClient({ uri: "http://localhost:40002/express/allserver" });
@@ -225,7 +225,7 @@ describe("integration", function () {
             server.close();
         });
 
-        it("should behave with node-fetch", async () => {
+        it("should behave with fetch", async () => {
             const app = express();
             const expressServer = Allserver({ procedures, transport: ExpressTransport() });
             app.use("/express/allsever", expressServer.start());

@@ -38,8 +38,7 @@
     "@grpc/proto-loader": "0",
     "bullmq": "3 - 5",
     "express": "4 - 6",
-    "micro": "10",
-    "node-fetch": "2"
+    "micro": "10"
   },
   "peerDependenciesMeta": {
     "@grpc/grpc-js": {
@@ -56,9 +55,6 @@
     },
     "micro": {
       "optional": true
-    },
-    "node-fetch": {
-      "optional": true
     }
   },
   "devDependencies": {
@@ -70,7 +66,6 @@
     "lambda-local": "^1.7.3",
     "micro": "^10.0.1",
     "mocha": "^11.7.1",
-    "node-fetch": "^2.6.9",
     "nyc": "^17.1.0",
     "oxlint": "^1.25.0",
     "prettier": "^2.1.1"
