@@ -1,12 +1,12 @@
 {
   "name": "allserver",
   "version": "2.6.0",
-  "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic. DX-first.",
+  "description": "Multi-protocol RPC server and [optional] client. DX-first. Minimalistic. Boilerplate-less. Opinionated.",
   "main": "src/index.js",
   "scripts": {
     "lint": "oxlint ./",
     "test": "mocha",
-    "cov": "nyc --reporter=html npm run test"
+    "cov": "nyc --reporter=html node --run test"
   },
   "keywords": [
     "simple",
@@ -71,7 +71,7 @@
     "prettier": "^2.1.1"
   },
   "dependencies": {
-    "stampit": "^4.3.1"
+    "stampit": "^5.0.1"
   },
   "mocha": {
     "recursive": true,
