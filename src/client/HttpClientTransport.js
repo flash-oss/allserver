@@ -51,7 +51,7 @@ module.exports = require("./ClientTransport").compose({
                         const json = JSON.parse(text);
                         error = new Error((json && json.message) || text);
                         if (json && json.code) error.code = json.code;
-                    } catch (err) {
+                    } catch {
                         // ignoring. Not a JSON
                     }
                 }

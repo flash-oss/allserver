@@ -22,7 +22,7 @@ module.exports = require("./Transport").compose({
                 if (bodyBuffer.length !== 0) arg = await this.micro.json(ctx.http.req);
                 ctx.arg = arg;
                 return true;
-            } catch (err) {
+            } catch {
                 return false;
             }
         },

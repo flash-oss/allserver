@@ -17,7 +17,7 @@ module.exports = require("./Transport").compose({
                         }
                     }
                     return true;
-                } catch (err) {
+                } catch {
                     return false;
                 }
             } else {

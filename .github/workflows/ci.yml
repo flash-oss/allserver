@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os-version: [ubuntu-latest, macos-latest]
-        node-version: ["14", "16", "18"]
+        node-version: ["20", "22", "24"]
         redis-version: [6]
 
     steps:
@@ -38,7 +38,7 @@ jobs:
     strategy:
       matrix:
         os-version: [windows-latest]
-        node-version: ["14", "16", "18"]
+        node-version: ["20", "22", "24"]
 
     steps:
       - name: Git checkout
