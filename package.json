@@ -37,7 +37,7 @@
     "@grpc/grpc-js": "1",
     "@grpc/proto-loader": "0",
     "bullmq": "3 - 5",
-    "express": "4",
+    "express": "4 - 6",
     "micro": "10",
     "node-fetch": "2"
   },
