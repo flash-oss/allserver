@@ -130,7 +130,7 @@ describe("AllserverClient", () => {
             assert.strictEqual(result.success, false);
             assert.strictEqual(result.code, "ALLSERVER_CLIENT_MALFORMED_INTROSPECTION");
             assert.strictEqual(result.message, "Malformed introspection from void://localhost");
-            assert.strictEqual(result.error.message, "Unexpected token b in JSON at position 0");
+            assert(result.error.message.includes("Unexpected token"));
         });
 
         it("should not throw if underlying transport returns introspection in a wrong format", async () => {

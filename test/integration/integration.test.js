@@ -118,7 +118,7 @@ describe("integration", function () {
             assert.strictEqual(response.success, false);
             assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            if (response.error.cause) assert(response.error.cause.message.includes("ECONNREFUSED"));
+            if (response.error.cause) assert.strictEqual(response.error.cause.code, "ECONNREFUSED");
             else assert(response.error.message.includes("ECONNREFUSED"));
 
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40000 }) });
@@ -194,7 +194,7 @@ describe("integration", function () {
             assert.strictEqual(response.success, false);
             assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            if (response.error.cause) assert(response.error.cause.message.includes("ECONNREFUSED"));
+            if (response.error.cause) assert.strictEqual(response.error.cause.code, "ECONNREFUSED");
             else assert(response.error.message.includes("ECONNREFUSED"));
 
             const app = express();
@@ -404,7 +404,7 @@ describe("integration", function () {
             assert.strictEqual(response.success, false);
             assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
             assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            assert(response.error.message.includes("ECONNREFUSED"));
+            assert.strictEqual(response.error.code, "ECONNREFUSED");
 
             if (process.platform === "win32") return;
 
