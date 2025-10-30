@@ -4,7 +4,7 @@ module.exports = require("./Transport").compose({
     name: "GrpcTransport",
 
     props: {
-        _fs: require("fs"),
+        _fs: require("node:fs"),
         _grpc: require("@grpc/grpc-js"),
         _protoLoader: require("@grpc/proto-loader"),
         port: process.env.PORT,

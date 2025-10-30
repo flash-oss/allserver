@@ -1,4 +1,4 @@
-const assert = require("assert");
+const assert = require("node:assert");
 
 const procedures = {
     sayHello({ name }) {
@@ -322,7 +322,7 @@ describe("integration", function () {
             );
             const proto = grpc.loadPackageDefinition(packageDefinition);
             const client = new proto.MyService("localhost:50051", grpc.credentials.createInsecure());
-            const { promisify } = require("util");
+            const { promisify } = require("node:util");
             for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
 
             const response = await client.sayHello({ name: "world" });

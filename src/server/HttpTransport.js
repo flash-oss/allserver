@@ -1,5 +1,5 @@
-const http = require("http");
-const { parse: parseUrl, URLSearchParams } = require("url");
+const http = require("node:http");
+const { parse: parseUrl, URLSearchParams } = require("node:url");
 
 module.exports = require("./Transport").compose({
     name: "HttpTransport",
