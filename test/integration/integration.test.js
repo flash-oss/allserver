@@ -1,4 +1,4 @@
-const assert = require("node:assert");
+const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
 const procedures = {
@@ -39,54 +39,54 @@ async function callClientMethods(client) {
     // twice in a row
     response = await client.sayHello({ name: "world" });
     const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
-    assert.deepStrictEqual(response, expectedHello);
+    assert.deepEqual(response, expectedHello);
     response = await client.sayHello({ name: "world" });
-    assert.deepStrictEqual(response, expectedHello);
+    assert.deepEqual(response, expectedHello);
 
     // Introspection work
     response = await client.introspect({});
-    assert.deepStrictEqual(Object.keys(procedures), Object.keys(JSON.parse(response.procedures)));
+    assert.deepEqual(Object.keys(procedures), Object.keys(JSON.parse(response.procedures)));
     // Turn off introspection
     response = await client.introspection({ enable: false });
-    assert.strictEqual(response.success, true);
+    assert.equal(response.success, true);
     // Introspection should not work now
     response = await client.introspect();
-    assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
+    assert.equal(response.success, false);
+    assert.equal(response.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
     // Turn on introspection
     response = await client.introspection({ enable: true });
-    assert.strictEqual(response.success, true);
+    assert.equal(response.success, true);
     // Introspection should be back working
     response = await client.introspect();
-    assert.strictEqual(response.success, true);
-    assert.strictEqual(response.code, "ALLSERVER_INTROSPECTION");
+    assert.equal(response.success, true);
+    assert.equal(response.code, "ALLSERVER_INTROSPECTION");
 
     for (const number of [0, 1, 2, 3]) {
         response = await client.gate({ number });
-        assert.strictEqual(response.success, number <= 2);
+        assert.equal(response.success, number <= 2);
     }
 
     response = await client.throws({});
-    assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
+    assert.equal(response.success, false);
+    assert.equal(response.code, "ALLSERVER_PROCEDURE_ERROR");
     assert(response.message.startsWith("'Cannot read "));
     assert(response.message.endsWith(" error in 'throws' procedure"));
 
     response = await client.throwsBadArgs({});
-    assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ERR_ASSERTION");
-    assert.strictEqual(response.message, `'missingArg is mandatory' error in 'throwsBadArgs' procedure`);
+    assert.equal(response.success, false);
+    assert.equal(response.code, "ERR_ASSERTION");
+    assert.equal(response.message, `'missingArg is mandatory' error in 'throwsBadArgs' procedure`);
 
     response = await client.unexist({});
-    assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
-    assert.strictEqual(response.message, "Procedure 'unexist' not found via introspection");
+    assert.equal(response.success, false);
+    assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
+    assert.equal(response.message, "Procedure 'unexist' not found via introspection");
 
     client[Symbol.for("AllserverClient")].timeout = 1;
     response = await client.forcedTimeout({});
-    assert.strictEqual(response.success, false);
-    assert.strictEqual(response.code, "ALLSERVER_CLIENT_TIMEOUT");
-    assert.strictEqual(response.message, "The remote procedure forcedTimeout timed out in 1 ms");
+    assert.equal(response.success, false);
+    assert.equal(response.code, "ALLSERVER_CLIENT_TIMEOUT");
+    assert.equal(response.message, "The remote procedure forcedTimeout timed out in 1 ms");
     client[Symbol.for("AllserverClient")].timeout = 0;
 }
 
@@ -114,10 +114,10 @@ describe("integration", function () {
 
             let response;
             response = await httpClient.sayHello({ name: "world" });
-            assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            if (response.error.cause) assert.strictEqual(response.error.cause.code, "ECONNREFUSED");
+            assert.equal(response.success, false);
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(response.message, "Couldn't reach remote procedure: sayHello");
+            if (response.error.cause) assert.equal(response.error.cause.code, "ECONNREFUSED");
             else assert(response.error.message.includes("ECONNREFUSED"));
 
             const httpServer = Allserver({ procedures, transport: HttpTransport({ port: 40000 }) });
@@ -129,17 +129,17 @@ describe("integration", function () {
 
             // Should return 400
             response = await httpClient.throwsBadArgs();
-            assert.strictEqual(response.code, "ERR_ASSERTION");
-            assert.strictEqual(response.error.status, 400);
+            assert.equal(response.code, "ERR_ASSERTION");
+            assert.equal(response.error.status, 400);
 
             // Should return 404
             response = await httpClient.unexist();
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
 
             // Should return 500
             response = await httpClient.throws();
-            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
-            assert.strictEqual(response.error.status, 500);
+            assert.equal(response.code, "ALLSERVER_PROCEDURE_ERROR");
+            assert.equal(response.error.status, 500);
 
             await httpServer.stop();
         });
@@ -157,7 +157,7 @@ describe("integration", function () {
                 })
             ).json();
             const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
-            assert.deepStrictEqual(response, expectedHello);
+            assert.deepEqual(response, expectedHello);
 
             // HTTP-ony specific tests
 
@@ -167,13 +167,13 @@ describe("integration", function () {
                 body: Buffer.allocUnsafe(999),
             });
             assert(!response.ok);
-            assert.strictEqual(response.status, 400);
+            assert.equal(response.status, 400);
 
             // Should call using GET with query params
             response = await fetch("http://localhost:40001/sayHello?name=world");
             assert(response.ok);
             const body = await response.json();
-            assert.deepStrictEqual(body, expectedHello);
+            assert.deepEqual(body, expectedHello);
 
             const httpClient = AllserverClient({ uri: "http://localhost:40001" });
             await callClientMethods(httpClient);
@@ -190,10 +190,10 @@ describe("integration", function () {
 
             let response;
             response = await httpClient.sayHello({ name: "world" });
-            assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            if (response.error.cause) assert.strictEqual(response.error.cause.code, "ECONNREFUSED");
+            assert.equal(response.success, false);
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(response.message, "Couldn't reach remote procedure: sayHello");
+            if (response.error.cause) assert.equal(response.error.cause.code, "ECONNREFUSED");
             else assert(response.error.message.includes("ECONNREFUSED"));
 
             const app = express();
@@ -208,17 +208,17 @@ describe("integration", function () {
 
             // Should return 400
             response = await httpClient.throwsBadArgs();
-            assert.strictEqual(response.code, "ERR_ASSERTION");
-            assert.strictEqual(response.error.status, 400);
+            assert.equal(response.code, "ERR_ASSERTION");
+            assert.equal(response.error.status, 400);
 
             // Should return 404
             response = await httpClient.unexist();
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_NOT_FOUND");
 
             // Should return 500
             response = await httpClient.throws();
-            assert.strictEqual(response.code, "ALLSERVER_PROCEDURE_ERROR");
-            assert.strictEqual(response.error.status, 500);
+            assert.equal(response.code, "ALLSERVER_PROCEDURE_ERROR");
+            assert.equal(response.error.status, 500);
 
             if (server.closeIdleConnections) server.closeIdleConnections();
             await server.close();
@@ -241,7 +241,7 @@ describe("integration", function () {
                 })
             ).json();
             const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
-            assert.deepStrictEqual(response, expectedHello);
+            assert.deepEqual(response, expectedHello);
 
             // HTTP-ony specific tests
 
@@ -252,13 +252,13 @@ describe("integration", function () {
                 body: Buffer.allocUnsafe(999),
             });
             assert(!response.ok);
-            assert.strictEqual(response.status, 400);
+            assert.equal(response.status, 400);
 
             // Should call using GET with query params
             response = await fetch("http://localhost:40003/express/allsever/sayHello?name=world");
             assert(response.ok);
             const body = await response.json();
-            assert.deepStrictEqual(body, expectedHello);
+            assert.deepEqual(body, expectedHello);
 
             const httpClient = AllserverClient({ uri: "http://localhost:40003/express/allsever" });
             await callClientMethods(httpClient);
@@ -279,9 +279,9 @@ describe("integration", function () {
                 transport: GrpcClientTransport({ protoFile, uri: "grpc://localhost:50051" }),
             });
             response = await grpcClient.sayHello({ name: "world" });
-            assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
+            assert.equal(response.success, false);
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(response.message, "Couldn't reach remote procedure: sayHello");
 
             // Without protoFile
             grpcClient = AllserverClient({
@@ -289,9 +289,9 @@ describe("integration", function () {
             });
 
             response = await grpcClient.sayHello({ name: "world" });
-            assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
+            assert.equal(response.success, false);
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(response.message, "Couldn't reach remote procedure: sayHello");
 
             const grpcServer = Allserver({
                 procedures,
@@ -326,7 +326,7 @@ describe("integration", function () {
 
             const response = await client.sayHello({ name: "world" });
             const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
-            assert.deepStrictEqual(response, expectedHello);
+            assert.deepEqual(response, expectedHello);
 
             await grpcServer.stop();
         });
@@ -400,10 +400,10 @@ describe("integration", function () {
             let bullmqClient = AllserverClient({ uri: `bullmq://localhost:65432` }); // This port should not have Redis server on it.
 
             const response = await bullmqClient.sayHello({ name: "world" });
-            assert.strictEqual(response.success, false);
-            assert.strictEqual(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(response.message, "Couldn't reach remote procedure: sayHello");
-            assert.strictEqual(response.error.code, "ECONNREFUSED");
+            assert.equal(response.success, false);
+            assert.equal(response.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(response.message, "Couldn't reach remote procedure: sayHello");
+            assert.equal(response.error.code, "ECONNREFUSED");
 
             if (process.platform === "win32") return;
 
@@ -442,7 +442,7 @@ describe("integration", function () {
             const job = await queue.add("sayHello", { name: "world" }, jobsOptions);
             const response = await job.waitUntilFinished(queueEvents, 1000);
             const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
-            assert.deepStrictEqual(response, expectedHello);
+            assert.deepEqual(response, expectedHello);
 
             await bullmqServer.stop();
         });

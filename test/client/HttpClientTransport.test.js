@@ -1,4 +1,4 @@
-const assert = require("node:assert");
+const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
 const { HttpClientTransport } = require("../..");
@@ -8,7 +8,7 @@ describe("HttpClientTransport", () => {
         it("should accept uri without end slash", () => {
             const transport = HttpClientTransport({ uri: "http://bla" });
 
-            assert.strictEqual(transport.uri, "http://bla/");
+            assert.equal(transport.uri, "http://bla/");
         });
 
         it("should assign headers", () => {
@@ -16,7 +16,7 @@ describe("HttpClientTransport", () => {
 
             const ctx = transport.createCallContext({});
 
-            assert.strictEqual(ctx.http.headers.authorization, "Basic token");
+            assert.equal(ctx.http.headers.authorization, "Basic token");
         });
     });
 
@@ -24,8 +24,8 @@ describe("HttpClientTransport", () => {
         it("should add response to context", async () => {
             const MockedTransport = HttpClientTransport.props({
                 async fetch(uri, options) {
-                    assert.strictEqual(uri, "http://localhost/");
-                    assert.strictEqual(options.method, "POST");
+                    assert.equal(uri, "http://localhost/");
+                    assert.equal(options.method, "POST");
                     return new globalThis.Response(JSON.stringify({ success: true, code: "OK", message: "called" }), {
                         status: 200,
                         headers: { "Content-Type": "application/json" },
@@ -39,7 +39,7 @@ describe("HttpClientTransport", () => {
             const result = await transport.call(ctx);
 
             assert(ctx.http.response instanceof globalThis.Response);
-            assert.deepStrictEqual(result, { success: true, code: "OK", message: "called" });
+            assert.deepEqual(result, { success: true, code: "OK", message: "called" });
         });
     });
 });

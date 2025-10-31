@@ -1,4 +1,4 @@
-const assert = require("node:assert");
+const assert = require("node:assert/strict");
 
 const { isObject, isBoolean, isFunction, uniq } = require("../util");
 

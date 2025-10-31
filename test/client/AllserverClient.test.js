@@ -1,4 +1,4 @@
-const assert = require("node:assert");
+const assert = require("node:assert/strict");
 const { describe, it, afterEach } = require("node:test");
 
 const cls = require("cls-hooked");
@@ -84,12 +84,12 @@ describe("AllserverClient", () => {
 
         it("should work with third party added transports supported", () => {
             const client = AllserverClient({ uri: "void://bla" });
-            assert.strictEqual(client[p].transport.uri, "void://bla");
+            assert.equal(client[p].transport.uri, "void://bla");
         });
 
         it("should ignore case", () => {
             const client = AllserverClient({ uri: "VOID://bla" });
-            assert.strictEqual(client[p].transport.uri, "VOID://bla");
+            assert.equal(client[p].transport.uri, "VOID://bla");
         });
 
         it("should throw is schema is not supported", () => {
@@ -111,10 +111,10 @@ describe("AllserverClient", () => {
             });
 
             const result = await AllserverClient({ transport: MockedTransport() }).introspect();
-            assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
-            assert.strictEqual(result.message, "Couldn't introspect void://localhost due to: Cannot reach server");
-            assert.strictEqual(result.error.message, "Cannot reach server");
+            assert.equal(result.success, false);
+            assert.equal(result.code, "ALLSERVER_CLIENT_INTROSPECTION_FAILED");
+            assert.equal(result.message, "Couldn't introspect void://localhost due to: Cannot reach server");
+            assert.equal(result.error.message, "Cannot reach server");
         });
 
         it("should not throw if underlying transport returns malformed introspection", async () => {
@@ -128,9 +128,9 @@ describe("AllserverClient", () => {
             });
 
             const result = await AllserverClient({ transport: MockedTransport() }).testMethod();
-            assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_CLIENT_MALFORMED_INTROSPECTION");
-            assert.strictEqual(result.message, "Malformed introspection from void://localhost");
+            assert.equal(result.success, false);
+            assert.equal(result.code, "ALLSERVER_CLIENT_MALFORMED_INTROSPECTION");
+            assert.equal(result.message, "Malformed introspection from void://localhost");
             assert(result.error.message.includes("Unexpected token"));
         });
 
@@ -145,9 +145,9 @@ describe("AllserverClient", () => {
             });
 
             const result = await AllserverClient({ transport: MockedTransport() }).testMethod();
-            assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_CLIENT_MALFORMED_INTROSPECTION");
-            assert.strictEqual(result.message, "Malformed introspection from void://localhost");
+            assert.equal(result.success, false);
+            assert.equal(result.code, "ALLSERVER_CLIENT_MALFORMED_INTROSPECTION");
+            assert.equal(result.message, "Malformed introspection from void://localhost");
             assert(!result.error);
         });
     });
@@ -192,10 +192,10 @@ describe("AllserverClient", () => {
             });
 
             const result = await AllserverClient({ transport: MockedTransport() }).call("foo", {});
-            assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(result.message, "Couldn't reach remote procedure foo due to: Cannot reach server");
-            assert.strictEqual(result.error.message, "Cannot reach server");
+            assert.equal(result.success, false);
+            assert.equal(result.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(result.message, "Couldn't reach remote procedure foo due to: Cannot reach server");
+            assert.equal(result.error.message, "Cannot reach server");
         });
 
         it("should not throw if neverThrow enabled and the method is not present", async () => {
@@ -204,13 +204,13 @@ describe("AllserverClient", () => {
             });
 
             const client = AllserverClient({ transport: MockedTransport() });
-            assert.strictEqual(Reflect.has(client, "foo"), false); // don't have it
+            assert.equal(Reflect.has(client, "foo"), false); // don't have it
             const result = await client.call("foo", {});
-            assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
-            assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
-            assert.strictEqual(result.message, "Couldn't reach remote procedure foo due to: Shit happens too");
-            assert.strictEqual(result.error.message, "Shit happens too");
+            assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+            assert.equal(result.success, false);
+            assert.equal(result.code, "ALLSERVER_CLIENT_PROCEDURE_UNREACHABLE");
+            assert.equal(result.message, "Couldn't reach remote procedure foo due to: Shit happens too");
+            assert.equal(result.error.message, "Shit happens too");
         });
 
         it("should return ALLSERVER_CLIENT_TIMEOUT code on timeouts", async () => {
@@ -220,9 +220,9 @@ describe("AllserverClient", () => {
 
             const client = AllserverClient({ transport: MockedTransport(), timeout: 1 }); // 1 ms timeout for fast unit tests
             const result = await client.call("doesnt_matter");
-            assert.strictEqual(result.success, false);
-            assert.strictEqual(result.code, "ALLSERVER_CLIENT_TIMEOUT");
-            assert.strictEqual(result.message, "The remote procedure doesnt_matter timed out in 1 ms");
+            assert.equal(result.success, false);
+            assert.equal(result.code, "ALLSERVER_CLIENT_TIMEOUT");
+            assert.equal(result.message, "The remote procedure doesnt_matter timed out in 1 ms");
         });
     });
 
@@ -250,18 +250,18 @@ describe("AllserverClient", () => {
                     };
                 },
                 async call({ procedureName, arg }) {
-                    assert.strictEqual(procedureName, "getRates");
-                    assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "getRates" } });
+                    assert.equal(procedureName, "getRates");
+                    assert.deepEqual(arg, { a: 1, _: { procedureName: "getRates" } });
                     return { success: true, code: "CALLED", message: "A is good", b: 42 };
                 },
             });
 
             const nameMapper = (name) => name !== "hide-me" && name.replace(/(-\w)/g, (k) => k[1].toUpperCase());
             const client = AllserverClient({ transport: MockedTransport(), nameMapper });
-            assert.strictEqual(Reflect.has(client, "getRates"), false); // dont have it yet
+            assert.equal(Reflect.has(client, "getRates"), false); // dont have it yet
             const result = await client.getRates({ a: 1 });
-            assert.strictEqual(Reflect.has(client, "getRates"), true); // have it now!
-            assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
+            assert.equal(Reflect.has(client, "getRates"), true); // have it now!
+            assert.deepEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
         });
     });
 
@@ -281,28 +281,28 @@ describe("AllserverClient", () => {
                         };
                     },
                     async call({ procedureName, arg }) {
-                        assert.strictEqual(procedureName, "getRates");
-                        assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "getRates" } });
+                        assert.equal(procedureName, "getRates");
+                        assert.deepEqual(arg, { a: 1, _: { procedureName: "getRates" } });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
                     },
                 });
 
                 let beforeCalled = 0;
                 function before(ctx) {
-                    assert.strictEqual(this, client, "The `this` context must be the client itself");
+                    assert.equal(this, client, "The `this` context must be the client itself");
                     if (ctx.isIntrospection) {
                         assert(!ctx.procedureName);
                     } else {
-                        assert.strictEqual(ctx.procedureName, "getRates");
-                        assert.deepStrictEqual(ctx.arg, { a: 1, _: { procedureName: "getRates" } });
+                        assert.equal(ctx.procedureName, "getRates");
+                        assert.deepEqual(ctx.arg, { a: 1, _: { procedureName: "getRates" } });
                     }
                     beforeCalled += 1;
                 }
 
                 const client = AllserverClient({ transport: MockedTransport(), before });
                 const result = await client.getRates({ a: 1 });
-                assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
-                assert.strictEqual(beforeCalled, 2);
+                assert.deepEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
+                assert.equal(beforeCalled, 2);
                 assert(introspected);
             });
 
@@ -318,9 +318,9 @@ describe("AllserverClient", () => {
                     return "Override result";
                 };
                 const client = DefaultedAllserverClient({ transport: VoidClientTransport(), before });
-                assert.strictEqual(client[p].before.length, 2, "Default middleware should be present");
+                assert.equal(client[p].before.length, 2, "Default middleware should be present");
                 const result = await client.foo();
-                assert.deepStrictEqual(result, "Override result");
+                assert.deepEqual(result, "Override result");
                 assert.ok(defaultMiddlewareCalled);
             });
 
@@ -335,7 +335,7 @@ describe("AllserverClient", () => {
                     callIntrospectedProceduresOnly: false,
                 });
                 const result = await client.foo();
-                assert.deepStrictEqual(result, {
+                assert.deepEqual(result, {
                     success: false,
                     code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
                     message: "The 'before' middleware error while calling 'foo' procedure: 'before' is throwing",
@@ -355,7 +355,7 @@ describe("AllserverClient", () => {
                     callIntrospectedProceduresOnly: false,
                 });
                 const result = await client.foo();
-                assert.deepStrictEqual(result, {
+                assert.deepEqual(result, {
                     success: false,
                     code: "OVERRIDE_CODE",
                     message: "'before' is throwing",
@@ -373,12 +373,12 @@ describe("AllserverClient", () => {
                             setTraceIdAndRunFunction("my-random-trace-id", next);
                         },
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(1);
                             return undefined;
                         },
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(2);
                             return { success: false, code: "BAD_AUTH_OR_SOMETHING", message: "Bad auth or something" };
                         },
@@ -391,12 +391,12 @@ describe("AllserverClient", () => {
 
                 const result = await client.foo();
 
-                assert.deepStrictEqual(result, {
+                assert.deepEqual(result, {
                     success: false,
                     code: "BAD_AUTH_OR_SOMETHING",
                     message: "Bad auth or something",
                 });
-                assert.deepStrictEqual(called, [1, 2]);
+                assert.deepEqual(called, [1, 2]);
             });
         });
 
@@ -415,21 +415,21 @@ describe("AllserverClient", () => {
                         };
                     },
                     async call({ procedureName, arg }) {
-                        assert.strictEqual(procedureName, "getRates");
-                        assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "getRates" } });
+                        assert.equal(procedureName, "getRates");
+                        assert.deepEqual(arg, { a: 1, _: { procedureName: "getRates" } });
                         return { success: true, code: "CALLED", message: "A is good", b: 42 };
                     },
                 });
 
                 let afterCalled = 0;
                 function after(ctx) {
-                    assert.strictEqual(this, client, "The `this` context must be the client itself");
+                    assert.equal(this, client, "The `this` context must be the client itself");
                     if (ctx.isIntrospection) {
                         assert(!ctx.procedureName);
                     } else {
-                        assert.strictEqual(ctx.procedureName, "getRates");
-                        assert.deepStrictEqual(ctx.arg, { a: 1, _: { procedureName: "getRates" } });
-                        assert.deepStrictEqual(ctx.result, {
+                        assert.equal(ctx.procedureName, "getRates");
+                        assert.deepEqual(ctx.arg, { a: 1, _: { procedureName: "getRates" } });
+                        assert.deepEqual(ctx.result, {
                             success: true,
                             code: "CALLED",
                             message: "A is good",
@@ -440,8 +440,8 @@ describe("AllserverClient", () => {
                 }
                 const client = AllserverClient({ transport: MockedTransport(), after });
                 const result = await client.getRates({ a: 1 });
-                assert.deepStrictEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
-                assert.strictEqual(afterCalled, 2);
+                assert.deepEqual(result, { success: true, code: "CALLED", message: "A is good", b: 42 });
+                assert.equal(afterCalled, 2);
                 assert(introspected);
             });
 
@@ -457,9 +457,9 @@ describe("AllserverClient", () => {
                     return "Override result";
                 };
                 const client = DefaultedAllserverClient({ transport: VoidClientTransport(), after });
-                assert.strictEqual(client[p].after.length, 2, "Default middleware should be present");
+                assert.equal(client[p].after.length, 2, "Default middleware should be present");
                 const result = await client.foo();
-                assert.deepStrictEqual(result, "Override result");
+                assert.deepEqual(result, "Override result");
                 assert.ok(defaultMiddlewareCalled);
             });
 
@@ -474,7 +474,7 @@ describe("AllserverClient", () => {
                     callIntrospectedProceduresOnly: false,
                 });
                 const result = await client.foo();
-                assert.deepStrictEqual(result, {
+                assert.deepEqual(result, {
                     success: false,
                     code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
                     message: "The 'after' middleware error while calling 'foo' procedure: 'after' is throwing",
@@ -494,7 +494,7 @@ describe("AllserverClient", () => {
                     callIntrospectedProceduresOnly: false,
                 });
                 const result = await client.foo();
-                assert.deepStrictEqual(result, {
+                assert.deepEqual(result, {
                     success: false,
                     code: "OVERRIDE_CODE",
                     message: "'after' is throwing",
@@ -514,11 +514,11 @@ describe("AllserverClient", () => {
                     ],
                     after: [
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(1);
                         },
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(2);
                         },
                     ],
@@ -526,7 +526,7 @@ describe("AllserverClient", () => {
 
                 await client.foo();
 
-                assert.deepStrictEqual(called, [1, 2]);
+                assert.deepEqual(called, [1, 2]);
             });
         });
 
@@ -561,7 +561,7 @@ describe("AllserverClient", () => {
                 assert(afterCalled);
                 assert(!secondBeforeCalled);
                 assert(!secondAfterCalled);
-                assert.deepStrictEqual(result, {
+                assert.deepEqual(result, {
                     success: false,
                     code: "ALLSERVER_CLIENT_MIDDLEWARE_ERROR",
                     message: "The 'before' middleware error while calling 'foo' procedure: 'before' is throwing",
@@ -583,17 +583,17 @@ describe("AllserverClient", () => {
                     };
                 },
                 async call({ procedureName, arg }) {
-                    assert.strictEqual(procedureName, "foo");
-                    assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "foo" } });
+                    assert.equal(procedureName, "foo");
+                    assert.deepEqual(arg, { a: 1, _: { procedureName: "foo" } });
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
                 },
             });
 
             const client = AllserverClient({ transport: MockedTransport() });
-            assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it yet
+            assert.equal(Reflect.has(client, "foo"), false); // dont have it yet
             const result = await client.foo({ a: 1 });
-            assert.strictEqual(Reflect.has(client, "foo"), true); // have it now!
-            assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+            assert.equal(Reflect.has(client, "foo"), true); // have it now!
+            assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
         });
 
         it("should attempt calling if introspection fails", async () => {
@@ -602,20 +602,20 @@ describe("AllserverClient", () => {
                     return Promise.reject(new Error("Couldn't introspect"));
                 },
                 call({ procedureName, arg }) {
-                    assert.strictEqual(procedureName, "foo");
-                    assert.deepStrictEqual(arg, { a: 1, _: { procedureName: "foo" } });
+                    assert.equal(procedureName, "foo");
+                    assert.deepEqual(arg, { a: 1, _: { procedureName: "foo" } });
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
                 },
             });
 
             const client = AllserverClient({ transport: MockedTransport(), callIntrospectedProceduresOnly: false });
-            assert.strictEqual(Reflect.has(client, "foo"), false); // don't have it
+            assert.equal(Reflect.has(client, "foo"), false); // don't have it
             const result = await AllserverClient({
                 transport: MockedTransport(),
                 callIntrospectedProceduresOnly: false,
             }).foo({ a: 1 });
-            assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
-            assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+            assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+            assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
         });
 
         it("should not override existing methods", async () => {
@@ -634,7 +634,7 @@ describe("AllserverClient", () => {
             });
 
             function foo(arg) {
-                assert.strictEqual(arg && arg.a, 1);
+                assert.equal(arg && arg.a, 1);
                 return {
                     success: true,
                     code: "CACHED",
@@ -644,10 +644,10 @@ describe("AllserverClient", () => {
             }
 
             const client = AllserverClient.methods({ foo }).create({ transport: MockedTransport() });
-            assert.strictEqual(client.foo, foo);
+            assert.equal(client.foo, foo);
             const result = await client.foo({ a: 1 });
-            assert.strictEqual(client.foo, foo);
-            assert.deepStrictEqual(result, {
+            assert.equal(client.foo, foo);
+            assert.deepEqual(result, {
                 success: true,
                 code: "CACHED",
                 message: "The reply mimics memory caching",
@@ -674,13 +674,13 @@ describe("AllserverClient", () => {
 
             for (let i = 1; i <= 2; i += 1) {
                 const client = AllserverClient({ transport: MockedTransport({ uri: "void://very-unique-address-1" }) });
-                assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it yet
+                assert.equal(Reflect.has(client, "foo"), false); // dont have it yet
                 const result = await client.foo({ a: 1 });
-                assert.strictEqual(Reflect.has(client, "foo"), true); // have it now!
-                assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+                assert.equal(Reflect.has(client, "foo"), true); // have it now!
+                assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
             }
 
-            assert.strictEqual(introspectionCalls, 1);
+            assert.equal(introspectionCalls, 1);
         });
 
         it("should re-introspect failed introspections", async () => {
@@ -700,13 +700,13 @@ describe("AllserverClient", () => {
                     transport: MockedTransport({ uri: "void://very-unique-address-2" }),
                     callIntrospectedProceduresOnly: false,
                 });
-                assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it
+                assert.equal(Reflect.has(client, "foo"), false); // dont have it
                 const result = await client.foo({ a: 1 });
-                assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
-                assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+                assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+                assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
             }
 
-            assert.strictEqual(introspectionCalls, 2);
+            assert.equal(introspectionCalls, 2);
         });
 
         it("should not auto introspect if asked so", (done) => {
@@ -723,12 +723,12 @@ describe("AllserverClient", () => {
                 autoIntrospect: false,
                 transport: MockedTransport({ uri: "void://very-unique-address-3" }),
             });
-            assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it
+            assert.equal(Reflect.has(client, "foo"), false); // dont have it
             client
                 .foo({ a: 1 })
                 .then((result) => {
-                    assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
-                    assert.deepStrictEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+                    assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+                    assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
                     done();
                 })
                 .catch(done);
@@ -748,12 +748,12 @@ describe("AllserverClient", () => {
             const client = AllserverClient({
                 transport: MockedTransport({ uri: "void://very-unique-address-3" }),
             });
-            assert.strictEqual(Reflect.has(client, "foo"), false); // dont have it
+            assert.equal(Reflect.has(client, "foo"), false); // dont have it
             client
                 .foo({ a: 1 })
                 .then((result) => {
-                    assert.strictEqual(Reflect.has(client, "foo"), false); // still don't have it
-                    assert.deepStrictEqual(result, {
+                    assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+                    assert.deepEqual(result, {
                         success: false,
                         code: "SOME_ERROR",
                         message: "My message",
@@ -775,10 +775,10 @@ describe("AllserverClient", () => {
             });
 
             function protectedsAreOk(protecteds) {
-                assert.strictEqual(protecteds.neverThrow, false);
-                assert.strictEqual(protecteds.dynamicMethods, false);
-                assert.strictEqual(protecteds.autoIntrospect, false);
-                assert.strictEqual(typeof protecteds.nameMapper, "function");
+                assert.equal(protecteds.neverThrow, false);
+                assert.equal(protecteds.dynamicMethods, false);
+                assert.equal(protecteds.autoIntrospect, false);
+                assert.equal(typeof protecteds.nameMapper, "function");
             }
 
             protectedsAreOk(NewClient.compose.deepProperties[p]);
@@ -800,19 +800,19 @@ describe("AllserverClient", () => {
             });
 
             function protectedsAreOk(protecteds) {
-                assert.strictEqual(protecteds.neverThrow, false);
-                assert.strictEqual(protecteds.dynamicMethods, false);
-                assert.strictEqual(protecteds.autoIntrospect, false);
-                assert.strictEqual(typeof protecteds.nameMapper, "function");
-                assert.deepStrictEqual(protecteds.before, [before, before2]);
-                assert.deepStrictEqual(protecteds.after, [after, after2]);
+                assert.equal(protecteds.neverThrow, false);
+                assert.equal(protecteds.dynamicMethods, false);
+                assert.equal(protecteds.autoIntrospect, false);
+                assert.equal(typeof protecteds.nameMapper, "function");
+                assert.deepEqual(protecteds.before, [before, before2]);
+                assert.deepEqual(protecteds.after, [after, after2]);
             }
 
             protectedsAreOk(NewClient({ uri: "void://bla", before: before2, after: after2 })[p]);
         });
 
         it("should create new factory", () => {
-            assert.notStrictEqual(AllserverClient, AllserverClient.defaults());
+            assert.notEqual(AllserverClient, AllserverClient.defaults());
         });
     });
 });

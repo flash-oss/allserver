@@ -1,4 +1,4 @@
-const assert = require("node:assert");
+const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
 const { LambdaClientTransport } = require("../..");
@@ -9,8 +9,8 @@ describe("LambdaClientTransport", () => {
             const MockedTransport = LambdaClientTransport.props({
                 awsSdkLambdaClient: {
                     async invoke({ FunctionName, Payload }) {
-                        assert.strictEqual(FunctionName, "my-function");
-                        assert.deepStrictEqual(JSON.parse(Payload), { _: { procedureName: "" } });
+                        assert.equal(FunctionName, "my-function");
+                        assert.deepEqual(JSON.parse(Payload), { _: { procedureName: "" } });
                         return {
                             Payload: Uint8Array.from(
                                 Buffer.from(JSON.stringify({ success: true, code: "OK", message: "called" }))
@@ -25,7 +25,7 @@ describe("LambdaClientTransport", () => {
             const result = await transport.call(ctx);
 
             assert(ctx.lambda?.response?.Payload instanceof Uint8Array);
-            assert.deepStrictEqual(result, { success: true, code: "OK", message: "called" });
+            assert.deepEqual(result, { success: true, code: "OK", message: "called" });
         });
 
         it("should handle misconfiguration", async () => {
@@ -57,7 +57,7 @@ describe("LambdaClientTransport", () => {
                 await transport.call(ctx).catch((err) => (error = err));
 
                 assert(error);
-                assert.strictEqual(error.noNetToServer, true);
+                assert.equal(error.noNetToServer, true);
             }
         });
 
@@ -86,7 +86,7 @@ describe("LambdaClientTransport", () => {
 
                 assert(error);
                 assert(ctx.lambda?.response?.Payload instanceof Uint8Array);
-                assert.strictEqual(error.code, expectedCode);
+                assert.equal(error.code, expectedCode);
             }
         });
     });
