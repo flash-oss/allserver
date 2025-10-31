@@ -142,7 +142,7 @@ module.exports = require("stampit")({
             // The protocol implementation strategy.
             transport: null,
             // The maximum time to wait until returning the ALLSERVER_CLIENT_TIMEOUT error. 0 means - no timeout.
-            timeout: 0,
+            timeout: 60_000,
             // Disable any exception throwing when calling any methods. Otherwise, throws network and server errors.
             neverThrow: true,
             // Automatically find (introspect) and call corresponding remote procedures. Use only the methods defined in client side.
@@ -204,7 +204,7 @@ module.exports = require("stampit")({
             const getTransport = stamp.compose.deepConfiguration.transports[schema.toLowerCase()];
             if (!getTransport) throw new Error(`Schema not supported: ${uri}`);
 
-            this[p].transport = getTransport()({ uri });
+            this[p].transport = getTransport()({ uri, timeout: this[p].timeout });
         }
 
         if (before) this[p].before = [].concat(this[p].before).concat(before).filter(isFunction);
@@ -289,6 +289,9 @@ module.exports = require("stampit")({
             const transportMethod = ctx.isIntrospection ? "introspect" : "call";
             // In JavaScript if the `timeout` is null or undefined or some other object this condition will return `false`
             if (this[p].timeout > 0) {
+                let timeout = this[p].timeout;
+                // Let's give a chance to the Transport to return its native timeout response before returning Client's timeout response.
+                if (timeout >= 100) timeout = Math.round(timeout / 100 + timeout);
                 return Promise.race([
                     this[p].transport[transportMethod](ctx),
                     new Promise((resolve) =>
@@ -299,7 +302,7 @@ module.exports = require("stampit")({
                                     code: "ALLSERVER_CLIENT_TIMEOUT",
                                     message: `The remote procedure ${ctx.procedureName} timed out in ${this[p].timeout} ms`,
                                 }),
-                            this[p].timeout
+                            timeout
                         )
                     ),
                 ]);
@@ -353,6 +356,7 @@ module.exports = require("stampit")({
     statics: {
         defaults({
             transport,
+            timeout,
             neverThrow,
             dynamicMethods,
             autoIntrospect,
@@ -367,6 +371,7 @@ module.exports = require("stampit")({
             return this.deepProps({
                 [p]: {
                     transport,
+                    timeout,
                     neverThrow,
                     dynamicMethods,
                     callIntrospectedProceduresOnly,

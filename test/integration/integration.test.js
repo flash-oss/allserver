@@ -416,7 +416,9 @@ describe("integration", function () {
 
             bullmqClient = AllserverClient({ uri: `bullmq://localhost:${port}` });
             await callClientMethods(bullmqClient);
-            bullmqClient = AllserverClient({ transport: BullmqClientTransport({ uri: `redis://localhost:${port}` }) });
+            bullmqClient = AllserverClient({
+                transport: BullmqClientTransport({ uri: `redis://localhost:${port}` }),
+            });
             await callClientMethods(bullmqClient);
 
             await bullmqServer.stop();
@@ -428,7 +430,10 @@ describe("integration", function () {
             const port = 6379;
             const bullmqServer = Allserver({
                 procedures,
-                transport: BullmqTransport({ queueName: "OtherName", connectionOptions: { host: "localhost", port } }),
+                transport: BullmqTransport({
+                    queueName: "OtherName",
+                    connectionOptions: { host: "localhost", port },
+                }),
             });
             await bullmqServer.start();
 
@@ -447,7 +452,4 @@ describe("integration", function () {
             await bullmqServer.stop();
         });
     });
-    {
-        timeout: 5000;
-    }
 });

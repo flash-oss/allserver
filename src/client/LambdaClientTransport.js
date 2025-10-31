@@ -25,10 +25,13 @@ module.exports = require("./ClientTransport").compose({
         async call(ctx) {
             let invocationResponse;
             try {
-                invocationResponse = await this.awsSdkLambdaClient.invoke({
-                    FunctionName: this.uri.substring("lambda://".length),
-                    Payload: JSON.stringify(ctx.arg),
-                });
+                invocationResponse = await this.awsSdkLambdaClient.invoke(
+                    {
+                        FunctionName: this.uri.substring("lambda://".length),
+                        Payload: JSON.stringify(ctx.arg),
+                    },
+                    { requestTimeout: this.timeout } // this.timeout is a property of the parent ClientTransport
+                );
                 ctx.lambda.response = invocationResponse;
             } catch (e) {
                 if (e.name.includes("ProviderError") || e.name.includes("NotFound")) e.noNetToServer = true;

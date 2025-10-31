@@ -673,6 +673,9 @@ aws lambda invoke --function-name my-lambda-name --payload '{"_":{"procedureName
 - `transport`<br>
   The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https://` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used. If starts with `bullmq://` then `BullmqClientTransport` is used.
 
+- `timeout=60_000`<br>
+  Set it to `0` if you don't need a timeout. If the procedure call takes longer than this value then the `AllserverClient` will return `success=false` and `code=ALLSERVER_CLIENT_TIMEOUT`.
+
 - `neverThrow=true`<br>
   Set it to `false` if you want to get exceptions when there are a network, or a server errors during a procedure call. Otherwise, the standard `{success,code,message}` object is returned from method calls. The Allserver error `code`s are always start with `"ALLSERVER_"`. E.g. `"ALLSERVER_CLIENT_MALFORMED_INTROSPECTION"`.
 
@@ -701,6 +704,7 @@ You can change the above mentioned options default values like this:
 ```js
 AllseverClient = AllserverClient.defaults({
   transport,
+  timeout,
   neverThrow,
   dynamicMethods,
   autoIntrospect,
@@ -904,7 +908,8 @@ const client = AllserverClient({
     ctx.http.headers.authorization = "Basic my-token";
   },
   async after(ctx) {
-    if (ctx.error) console.error(ctx.error); else console.log(ctx.result);
+    if (ctx.error) console.error(ctx.error);
+    else console.log(ctx.result);
   },
 });
 ```
