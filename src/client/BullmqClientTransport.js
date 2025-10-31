@@ -4,7 +4,6 @@ module.exports = require("./ClientTransport").compose({
     props: {
         Queue: require("bullmq").Queue,
         QueueEvents: require("bullmq").QueueEvents,
-        _timeout: 60000,
         _queue: null,
         _queueEvents: null,
         _jobsOptions: null,
@@ -22,7 +21,6 @@ module.exports = require("./ClientTransport").compose({
                 retryStrategy: null, // only one attempt to connect
             };
         }
-        this._timeout = timeout || this._timeout;
 
         this._queue = new this.Queue(queueName, { connection: connectionOptions });
         this._queue.on("error", () => {}); // The only reason we subscribe is to avoid bullmq to print errors to console
@@ -49,7 +47,7 @@ module.exports = require("./ClientTransport").compose({
             try {
                 await this._queue.waitUntilReady();
                 const job = await bullmq.queue.add(procedureName, bullmq.data, bullmq.jobsOptions);
-                return await job.waitUntilFinished(bullmq.queueEvents, this._timeout);
+                return await job.waitUntilFinished(bullmq.queueEvents, this.timeout); // this.timeout is a property of the parent ClientTransport
             } catch (err) {
                 if (err.code === "ECONNREFUSED") err.noNetToServer = true;
                 throw err;

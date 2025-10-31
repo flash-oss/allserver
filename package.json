@@ -1,12 +1,12 @@
 {
   "name": "allserver",
-  "version": "2.5.0",
-  "description": "Multi-protocol simple RPC server and [optional] client. Boilerplate-less. Opinionated. Minimalistic. DX-first.",
+  "version": "2.6.0",
+  "description": "Multi-protocol RPC server and [optional] client. DX-first. Minimalistic. Boilerplate-less. Opinionated.",
   "main": "src/index.js",
   "scripts": {
-    "lint": "eslint ./",
-    "test": "mocha",
-    "cov": "nyc --reporter=html npm run test"
+    "lint": "oxlint ./",
+    "test": "node --test  --test-force-exit --trace-deprecation",
+    "cov": "nyc --reporter=html node --run test"
   },
   "keywords": [
     "simple",
@@ -25,7 +25,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "http://github.com/flash-oss/allserver"
+    "url": "https://github.com/flash-oss/allserver"
   },
   "bugs": {
     "url": "https://github.com/flash-oss/allserver/issues"
@@ -34,14 +34,17 @@
   "author": "Vasyl Boroviak",
   "license": "MIT",
   "peerDependencies": {
-    "@grpc/grpc-js": "^1.1.7",
-    "@grpc/proto-loader": "^0.7.5",
-    "bullmq": "^3.10.1",
-    "express": "^4.18.2",
-    "micro": "^10.0.1",
-    "node-fetch": "^2.6.9"
+    "@aws-sdk/client-lambda": "3",
+    "@grpc/grpc-js": "1",
+    "@grpc/proto-loader": "0",
+    "bullmq": "3 - 5",
+    "express": "4 - 6",
+    "micro": "10"
   },
   "peerDependenciesMeta": {
+    "@aws-sdk/client-lambda": {
+      "optional": true
+    },
     "@grpc/grpc-js": {
       "optional": true
     },
@@ -56,41 +59,22 @@
     },
     "micro": {
       "optional": true
-    },
-    "node-fetch": {
-      "optional": true
     }
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.1.7",
-    "@grpc/proto-loader": "^0.7.5",
-    "bullmq": "^3.10.1",
+    "@aws-sdk/client-lambda": "^3.921.0",
+    "@grpc/grpc-js": "^1.13.4",
+    "@grpc/proto-loader": "^0.8.0",
+    "bullmq": "^5.56.9",
     "cls-hooked": "^4.2.2",
-    "eslint": "^8.55.0",
-    "express": "^4.18.2",
-    "lambda-local": "^1.7.3",
+    "express": "^4.21.2",
+    "lambda-local": "^2.2.0",
     "micro": "^10.0.1",
-    "mocha": "^10.2.0",
-    "node-fetch": "^2.6.9",
-    "nyc": "^15.1.0",
+    "nyc": "^17.1.0",
+    "oxlint": "^1.25.0",
     "prettier": "^2.1.1"
   },
   "dependencies": {
-    "stampit": "^4.3.1"
-  },
-  "eslintConfig": {
-    "parserOptions": {
-      "ecmaVersion": 2022
-    },
-    "env": {
-      "es6": true,
-      "node": true,
-      "mocha": true
-    },
-    "extends": "eslint:recommended"
-  },
-  "mocha": {
-    "recursive": true,
-    "exit": true
+    "stampit": "^5.0.1"
   }
 }

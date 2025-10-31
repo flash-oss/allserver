@@ -21,6 +21,7 @@ service MyService {
   rpc gate(GateRequest) returns (GateReply) {}
   rpc throws(Empty) returns (Reply) {}
   rpc throwsBadArgs(Empty) returns (Reply) {}
+  rpc forcedTimeout(Empty) returns (Reply) {}
 }
 
 message HelloRequest {

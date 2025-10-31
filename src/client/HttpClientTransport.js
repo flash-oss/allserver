@@ -4,8 +4,7 @@ module.exports = require("./ClientTransport").compose({
     name: "HttpClientTransport",
 
     props: {
-        // eslint-disable-next-line no-undef
-        fetch: (typeof globalThis !== "undefined" && globalThis.fetch) || require("node-fetch"),
+        fetch: globalThis.fetch,
         headers: {
             "Content-Type": "application/json; charset=utf-8",
         },
@@ -51,7 +50,7 @@ module.exports = require("./ClientTransport").compose({
                         const json = JSON.parse(text);
                         error = new Error((json && json.message) || text);
                         if (json && json.code) error.code = json.code;
-                    } catch (err) {
+                    } catch {
                         // ignoring. Not a JSON
                     }
                 }

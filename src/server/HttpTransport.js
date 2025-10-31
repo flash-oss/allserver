@@ -1,5 +1,5 @@
-const http = require("http");
-const { parse: parseUrl, URLSearchParams } = require("url");
+const http = require("node:http");
+const { parse: parseUrl, URLSearchParams } = require("node:url");
 
 module.exports = require("./Transport").compose({
     name: "HttpTransport",
@@ -22,7 +22,7 @@ module.exports = require("./Transport").compose({
                 if (bodyBuffer.length !== 0) arg = await this.micro.json(ctx.http.req);
                 ctx.arg = arg;
                 return true;
-            } catch (err) {
+            } catch {
                 return false;
             }
         },
@@ -60,6 +60,7 @@ module.exports = require("./Transport").compose({
             return new Promise((r) => {
                 if (this.server.closeIdleConnections) this.server.closeIdleConnections();
                 this.server.close(r);
+                if (this.server.closeAllConnections) this.server.closeAllConnections();
             });
         },
 

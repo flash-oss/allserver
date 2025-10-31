@@ -1,4 +1,4 @@
-const { parse: parseUrl } = require("url");
+const { parse: parseUrl } = require("node:url");
 
 module.exports = require("./Transport").compose({
     name: "ExpressTransport",

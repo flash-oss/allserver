@@ -4,7 +4,7 @@ module.exports = require("./ClientTransport").compose({
     name: "GrpcClientTransport",
 
     props: {
-        _fs: require("fs"),
+        _fs: require("node:fs"),
         _grpc: require("@grpc/grpc-js"),
         _protoLoader: require("@grpc/proto-loader"),
         _grpcClientForIntrospection: null,

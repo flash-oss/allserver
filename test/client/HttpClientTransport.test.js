@@ -1,4 +1,5 @@
-const assert = require("assert");
+const assert = require("node:assert/strict");
+const { describe, it } = require("node:test");
 
 const { HttpClientTransport } = require("../..");
 
@@ -7,7 +8,7 @@ describe("HttpClientTransport", () => {
         it("should accept uri without end slash", () => {
             const transport = HttpClientTransport({ uri: "http://bla" });
 
-            assert.strictEqual(transport.uri, "http://bla/");
+            assert.equal(transport.uri, "http://bla/");
         });
 
         it("should assign headers", () => {
@@ -15,20 +16,20 @@ describe("HttpClientTransport", () => {
 
             const ctx = transport.createCallContext({});
 
-            assert.strictEqual(ctx.http.headers.authorization, "Basic token");
+            assert.equal(ctx.http.headers.authorization, "Basic token");
         });
     });
 
     describe("#call", () => {
         it("should add response to context", async () => {
-            const { Response } = require("node-fetch");
             const MockedTransport = HttpClientTransport.props({
                 async fetch(uri, options) {
-                    assert.strictEqual(uri, "http://localhost/");
-                    assert.strictEqual(options.method, "POST");
-                    const response = new Response();
-                    response.json = () => ({ success: true, code: "OK", message: "called" });
-                    return response;
+                    assert.equal(uri, "http://localhost/");
+                    assert.equal(options.method, "POST");
+                    return new globalThis.Response(JSON.stringify({ success: true, code: "OK", message: "called" }), {
+                        status: 200,
+                        headers: { "Content-Type": "application/json" },
+                    });
                 },
             });
 
@@ -37,8 +38,8 @@ describe("HttpClientTransport", () => {
             const ctx = transport.createCallContext({ procedureName: "" });
             const result = await transport.call(ctx);
 
-            assert(ctx.http.response instanceof Response);
-            assert.deepStrictEqual(result, { success: true, code: "OK", message: "called" });
+            assert(ctx.http.response instanceof globalThis.Response);
+            assert.deepEqual(result, { success: true, code: "OK", message: "called" });
         });
     });
 });

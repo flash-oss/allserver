@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const { describe, it } = require("node:test");
 
 const cls = require("cls-hooked");
 const spaceName = "allserver";
@@ -47,10 +48,10 @@ describe("Allserver", () => {
 
             let ctx = { void: { proc: "testMethod" } };
             server.handleCall(ctx);
-            assert.strictEqual(ctx.callNumber, 0);
+            assert.equal(ctx.callNumber, 0);
             ctx = { void: { proc: "testMethod" } };
             server.handleCall(ctx);
-            assert.strictEqual(ctx.callNumber, 1);
+            assert.equal(ctx.callNumber, 1);
         });
 
         it("should call if procedures is an array", async () => {
@@ -66,7 +67,7 @@ describe("Allserver", () => {
 
             let ctx = { void: { proc: "0" } };
             await server.handleCall(ctx);
-            assert.strictEqual(called, true);
+            assert.equal(called, true);
         });
 
         it("should reply ALLSERVER_PROCEDURE_NOT_FOUND", async () => {
@@ -80,7 +81,7 @@ describe("Allserver", () => {
                     };
                 },
                 reply(ctx) {
-                    assert.deepStrictEqual(ctx.result, {
+                    assert.deepEqual(ctx.result, {
                         success: false,
                         code: "ALLSERVER_PROCEDURE_NOT_FOUND",
                         message: "Procedure not found: dontExist",
@@ -102,7 +103,7 @@ describe("Allserver", () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
                 reply(ctx) {
-                    assert.deepStrictEqual(ctx.result, {
+                    assert.deepEqual(ctx.result, {
                         success: true,
                         code: "OPENED",
                         message: "Bla",
@@ -114,7 +115,7 @@ describe("Allserver", () => {
             const server = Allserver({
                 procedures: {
                     foo({ bar }) {
-                        assert.strictEqual(bar, "baz");
+                        assert.equal(bar, "baz");
                         return { success: true, code: "OPENED", message: "Bla", data: "point" };
                     },
                 },
@@ -130,7 +131,7 @@ describe("Allserver", () => {
             let replied = false;
             const MockedTransport = VoidTransport.methods({
                 reply(ctx) {
-                    assert.deepStrictEqual(ctx.result, {
+                    assert.deepEqual(ctx.result, {
                         success: false,
                         code: "ALLSERVER_PROCEDURE_ERROR",
                         message: "''undefined' is not a function' error in 'foo' procedure",
@@ -142,8 +143,8 @@ describe("Allserver", () => {
             const server = Allserver({
                 logger: {
                     error(err, code) {
-                        assert.strictEqual(code, "ALLSERVER_PROCEDURE_ERROR");
-                        assert.strictEqual(err.message, "'undefined' is not a function");
+                        assert.equal(code, "ALLSERVER_PROCEDURE_ERROR");
+                        assert.equal(err.message, "'undefined' is not a function");
                         logged = true;
                     },
                 },
@@ -170,10 +171,10 @@ describe("Allserver", () => {
                 const ctx = { void: { proc: "testMethod" } };
                 await server.handleCall(ctx);
 
-                assert.strictEqual(typeof ctx.result, "object");
-                assert.strictEqual(typeof ctx.result.success, "boolean");
-                assert.strictEqual(typeof ctx.result.code, "string");
-                assert.strictEqual(typeof ctx.result.message, "string");
+                assert.equal(typeof ctx.result, "object");
+                assert.equal(typeof ctx.result.success, "boolean");
+                assert.equal(typeof ctx.result.code, "string");
+                assert.equal(typeof ctx.result.message, "string");
             }
         });
     });
@@ -183,8 +184,8 @@ describe("Allserver", () => {
             let started = false;
             const MockedTransport = VoidTransport.methods({
                 async startServer(...args) {
-                    assert.strictEqual(args.length, 1);
-                    assert.strictEqual(args[0].allserver, server);
+                    assert.equal(args.length, 1);
+                    assert.equal(args[0].allserver, server);
                     started = true;
                 },
             });
@@ -225,7 +226,7 @@ describe("Allserver", () => {
                     assert(!ctx.introspection);
                 },
                 async reply(ctx) {
-                    assert.strictEqual(ctx.result, undefined);
+                    assert.equal(ctx.result, undefined);
                     replied = true;
                 },
             });
@@ -245,7 +246,7 @@ describe("Allserver", () => {
                     assert(!ctx.introspection);
                 },
                 async reply(ctx) {
-                    assert.strictEqual(ctx.result, undefined);
+                    assert.equal(ctx.result, undefined);
                     replied = true;
                 },
             });
@@ -262,7 +263,7 @@ describe("Allserver", () => {
             const MockedTransport = VoidTransport.methods({
                 isIntrospection: () => true,
                 getProcedureName(ctx) {
-                    assert.strictEqual(ctx.void.proc, "introspect");
+                    assert.equal(ctx.void.proc, "introspect");
                     return "";
                 },
                 prepareIntrospectionReply(ctx) {
@@ -274,7 +275,7 @@ describe("Allserver", () => {
                     };
                 },
                 reply(ctx) {
-                    assert.deepStrictEqual(ctx.introspection, { foo: "function", bar: "function" });
+                    assert.deepEqual(ctx.introspection, { foo: "function", bar: "function" });
                     replied = true;
                 },
             });
@@ -295,8 +296,8 @@ describe("Allserver", () => {
                 let called = false;
                 const server = Allserver({
                     before(ctx) {
-                        assert.strictEqual(this, server, "The `this` context must be the server itself");
-                        assert.deepStrictEqual(ctx, {
+                        assert.equal(this, server, "The `this` context must be the server itself");
+                        assert.deepEqual(ctx, {
                             arg: { _: { procedureName: "testMethod" } },
                             callNumber: 0,
                             procedure: server.procedures.testMethod,
@@ -322,8 +323,8 @@ describe("Allserver", () => {
                 const server = Allserver({
                     logger: {
                         error(err, code) {
-                            assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
-                            assert.strictEqual(err.message, "Handle me please");
+                            assert.equal(code, "ALLSERVER_MIDDLEWARE_ERROR");
+                            assert.equal(err.message, "Handle me please");
                             logged = true;
                         },
                     },
@@ -341,8 +342,8 @@ describe("Allserver", () => {
                 await server.handleCall(ctx);
 
                 assert(logged);
-                assert.strictEqual(lastMiddlewareCalled, false);
-                assert.deepStrictEqual(ctx.result, {
+                assert.equal(lastMiddlewareCalled, false);
+                assert.deepEqual(ctx.result, {
                     success: false,
                     code: "ALLSERVER_MIDDLEWARE_ERROR",
                     message: "'Handle me please' error in 'before' middleware",
@@ -371,8 +372,8 @@ describe("Allserver", () => {
                 let ctx = { void: { proc: "testMethod" } };
                 await server.handleCall(ctx);
 
-                assert.deepStrictEqual(called, [1, 2]);
-                assert.deepStrictEqual(ctx.result, {
+                assert.deepEqual(called, [1, 2]);
+                assert.deepEqual(ctx.result, {
                     success: false,
                     code: "BAD_AUTH_OR_SOMETHING",
                     message: "Bad auth or something",
@@ -383,7 +384,7 @@ describe("Allserver", () => {
                 let replied = false;
                 const MockedTransport = VoidTransport.methods({
                     async reply(ctx) {
-                        assert.strictEqual(ctx.result, 42);
+                        assert.equal(ctx.result, 42);
                         replied = true;
                     },
                 });
@@ -444,12 +445,12 @@ describe("Allserver", () => {
                             }
                         },
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(1);
                             return undefined;
                         },
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(2);
                             return { success: false, code: "BAD_AUTH_OR_SOMETHING", message: "Bad auth or something" };
                         },
@@ -463,8 +464,8 @@ describe("Allserver", () => {
                 let ctx = { void: { proc: "testMethod" }, arg: { _: { traceId: "my-random-trace-id" } } };
                 await server.handleCall(ctx);
 
-                assert.deepStrictEqual(called, [1, 2]);
-                assert.deepStrictEqual(ctx.result, {
+                assert.deepEqual(called, [1, 2]);
+                assert.deepEqual(ctx.result, {
                     success: false,
                     code: "BAD_AUTH_OR_SOMETHING",
                     message: "Bad auth or something",
@@ -477,8 +478,8 @@ describe("Allserver", () => {
                 let called = false;
                 const server = Allserver({
                     after(ctx) {
-                        assert.strictEqual(this, server, "The `this` context must be the server itself");
-                        assert.deepStrictEqual(ctx, {
+                        assert.equal(this, server, "The `this` context must be the server itself");
+                        assert.deepEqual(ctx, {
                             arg: { _: { procedureName: "testMethod" } },
                             callNumber: 0,
                             procedure: server.procedures.testMethod,
@@ -508,8 +509,8 @@ describe("Allserver", () => {
                 const server = Allserver({
                     logger: {
                         error(err, code) {
-                            assert.strictEqual(code, "ALLSERVER_MIDDLEWARE_ERROR");
-                            assert.strictEqual(err.message, "Handle me please");
+                            assert.equal(code, "ALLSERVER_MIDDLEWARE_ERROR");
+                            assert.equal(err.message, "Handle me please");
                             logged = true;
                         },
                     },
@@ -522,7 +523,7 @@ describe("Allserver", () => {
                 await server.handleCall(ctx);
 
                 assert(logged);
-                assert.deepStrictEqual(ctx.result, {
+                assert.deepEqual(ctx.result, {
                     success: false,
                     code: "ALLSERVER_MIDDLEWARE_ERROR",
                     message: "'Handle me please' error in 'after' middleware",
@@ -551,8 +552,8 @@ describe("Allserver", () => {
                 let ctx = { void: { proc: "testMethod" } };
                 await server.handleCall(ctx);
 
-                assert.deepStrictEqual(called, [1, 2]);
-                assert.deepStrictEqual(ctx.result, {
+                assert.deepEqual(called, [1, 2]);
+                assert.deepEqual(ctx.result, {
                     success: false,
                     code: "OVERWRITING_RESULT",
                     message: "Something something",
@@ -563,7 +564,7 @@ describe("Allserver", () => {
                 let replied = false;
                 const MockedTransport = VoidTransport.methods({
                     async reply(ctx) {
-                        assert.strictEqual(ctx.result, 42);
+                        assert.equal(ctx.result, 42);
                         replied = true;
                     },
                 });
@@ -597,17 +598,17 @@ describe("Allserver", () => {
                     ],
                     procedures: {
                         testMethod() {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push("testMethod");
                         },
                     },
                     after: [
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(1);
                         },
                         () => {
-                            assert.strictEqual(getTraceId(), "my-random-trace-id");
+                            assert.equal(getTraceId(), "my-random-trace-id");
                             called.push(2);
                         },
                     ],
@@ -616,8 +617,8 @@ describe("Allserver", () => {
                 let ctx = { void: { proc: "testMethod" }, arg: { _: { traceId: "my-random-trace-id" } } };
                 await server.handleCall(ctx);
 
-                assert.deepStrictEqual(called, ["testMethod", 1, 2]);
-                assert.deepStrictEqual(ctx.result, {
+                assert.deepEqual(called, ["testMethod", 1, 2]);
+                assert.deepEqual(ctx.result, {
                     success: true,
                     code: "SUCCESS",
                     message: "Success",
@@ -642,12 +643,12 @@ describe("Allserver", () => {
                 let ctx = { void: { proc: "testMethod" } };
                 await server.handleCall(ctx);
 
-                assert.deepStrictEqual(ctx.result, {
+                assert.deepEqual(ctx.result, {
                     success: false,
                     code: "ALLSERVER_MIDDLEWARE_ERROR",
                     message: "'Bad middleware' error in 'before' middleware",
                 });
-                assert.strictEqual(ctx.error, err);
+                assert.equal(ctx.error, err);
                 assert(afterCalled);
             });
         });
@@ -661,7 +662,7 @@ describe("Allserver", () => {
             assert(server.transport.micro);
 
             // Users console logger by default
-            assert.strictEqual(server.logger, console);
+            assert.equal(server.logger, console);
         });
     });
 
@@ -677,12 +678,12 @@ describe("Allserver", () => {
             const NewServer = Allserver.defaults({ procedures, transport, logger, introspection, before, after });
 
             function propsAreOk(server) {
-                assert.strictEqual(server.procedures, procedures);
-                assert.strictEqual(server.transport, transport);
-                assert.strictEqual(server.logger, logger);
-                assert.strictEqual(server.introspection, introspection);
-                assert.deepStrictEqual(server.before, [before]);
-                assert.deepStrictEqual(server.after, [after]);
+                assert.equal(server.procedures, procedures);
+                assert.equal(server.transport, transport);
+                assert.equal(server.logger, logger);
+                assert.equal(server.introspection, introspection);
+                assert.deepEqual(server.before, [before]);
+                assert.deepEqual(server.after, [after]);
             }
 
             propsAreOk(NewServer());
@@ -701,19 +702,19 @@ describe("Allserver", () => {
             const NewServer = Allserver.defaults({ procedures, transport, logger, introspection, before, after });
 
             function propsAreOk(props) {
-                assert.strictEqual(props.procedures, procedures);
-                assert.strictEqual(props.transport, transport);
-                assert.strictEqual(props.logger, logger);
-                assert.strictEqual(props.introspection, introspection);
-                assert.deepStrictEqual(props.before, [before, before2]);
-                assert.deepStrictEqual(props.after, [after, after2]);
+                assert.equal(props.procedures, procedures);
+                assert.equal(props.transport, transport);
+                assert.equal(props.logger, logger);
+                assert.equal(props.introspection, introspection);
+                assert.deepEqual(props.before, [before, before2]);
+                assert.deepEqual(props.after, [after, after2]);
             }
 
             propsAreOk(NewServer({ before: before2, after: after2 }));
         });
 
         it("should create new factory", () => {
-            assert.notStrictEqual(Allserver, Allserver.defaults());
+            assert.notEqual(Allserver, Allserver.defaults());
         });
     });
 });

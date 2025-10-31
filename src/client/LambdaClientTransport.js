@@ -7,13 +7,7 @@ module.exports = require("./ClientTransport").compose({
 
     init() {
         if (!this.awsSdkLambdaClient) {
-            let Lambda;
-            try {
-                Lambda = require("aws-sdk").Lambda; // AWS SDK v2 adoption
-            } catch {
-                Lambda = require("@aws-sdk/client-lambda").Lambda;
-            }
-
+            const { Lambda } = require("@aws-sdk/client-lambda");
             this.awsSdkLambdaClient = new Lambda();
         }
     },
@@ -29,30 +23,48 @@ module.exports = require("./ClientTransport").compose({
         },
 
         async call(ctx) {
-            let promise = this.awsSdkLambdaClient.invoke({
-                FunctionName: this.uri.substring("lambda://".length),
-                // TODO: change to this during the next major release:
-                //  Payload: JSON.stringify(ctx.arg),
-                Payload: JSON.stringify({
-                    callContext: { ...ctx.lambda.callContext, procedureName: ctx.procedureName },
-                    callArg: ctx.lambda.callArg,
-                    ...ctx.arg,
-                }),
-            });
-            if (typeof promise.promise === "function") promise = promise.promise(); // AWS SDK v2 adoption
-            const invocationResponse = await promise;
-            return JSON.parse(Buffer.from(invocationResponse.Payload));
+            let invocationResponse;
+            try {
+                invocationResponse = await this.awsSdkLambdaClient.invoke(
+                    {
+                        FunctionName: this.uri.substring("lambda://".length),
+                        Payload: JSON.stringify(ctx.arg),
+                    },
+                    { requestTimeout: this.timeout } // this.timeout is a property of the parent ClientTransport
+                );
+                ctx.lambda.response = invocationResponse;
+            } catch (e) {
+                if (e.name.includes("ProviderError") || e.name.includes("NotFound")) e.noNetToServer = true;
+                throw e;
+            }
+
+            let json;
+            try {
+                json = JSON.parse(Buffer.from(invocationResponse.Payload));
+            } catch (e) {
+                e.code = "ALLSERVER_RPC_RESPONSE_IS_NOT_JSON";
+                throw e;
+            }
+
+            const error = new Error("Bad response payload");
+            if (json.constructor !== Object) {
+                error.code = "ALLSERVER_RPC_RESPONSE_IS_NOT_OBJECT";
+                throw error;
+            }
+
+            // Yes, the AWS Lambda sometimes returns a empty object when the Lambda runtime shuts down abruptly for no apparent reason.
+            if (Object.keys(json).length === 0) {
+                error.code = "ALLSERVER_RPC_RESPONSE_IS_EMPTY_OBJECT";
+                throw error;
+            }
+
+            return json;
         },
 
         createCallContext(defaultCtx) {
             return {
                 ...defaultCtx,
-                // TODO: change to this during the next major release:
-                //  lambda: {}
-                lambda: {
-                    callContext: {},
-                    callArg: defaultCtx.arg,
-                },
+                lambda: {},
             };
         },
     },

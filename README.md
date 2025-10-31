@@ -162,7 +162,7 @@ npm i allserver express
 Optionally, you can use Allserver's built-in client:
 
 ```shell
-npm i allserver node-fetch
+npm i allserver
 ```
 
 Or do HTTP requests using any module you like.
@@ -390,10 +390,8 @@ exports.handler = Allserver({
 
 #### Using built-in client
 
-You'd need to install `node-fetch` optional dependency.
-
 ```shell
-npm i allserver node-fetch
+npm i allserver
 ```
 
 Note, that this code is **same** as the gRPC client code example below!
@@ -618,13 +616,7 @@ assert(success === true);
 
 ### Bare AWS Lambda invocation
 
-First you need to install any of the AWS SDK versions.
-
-```shell
-npm i allserver aws-sdk
-```
-
-or
+First you need to install the AWS SDK v3.
 
 ```shell
 npm i allserver @aws-sdk/client-lambda
@@ -681,6 +673,9 @@ aws lambda invoke --function-name my-lambda-name --payload '{"_":{"procedureName
 - `transport`<br>
   The transport implementation object. The `uri` is ignored if this option provided. If not given then it will be automatically created based on the `uri` schema. E.g. if it starts with `http://` or `https://` then `HttpClientTransport` will be used. If starts with `grpc://` then `GrpcClientTransport` will be used. If starts with `bullmq://` then `BullmqClientTransport` is used.
 
+- `timeout=60_000`<br>
+  Set it to `0` if you don't need a timeout. If the procedure call takes longer than this value then the `AllserverClient` will return `success=false` and `code=ALLSERVER_CLIENT_TIMEOUT`.
+
 - `neverThrow=true`<br>
   Set it to `false` if you want to get exceptions when there are a network, or a server errors during a procedure call. Otherwise, the standard `{success,code,message}` object is returned from method calls. The Allserver error `code`s are always start with `"ALLSERVER_"`. E.g. `"ALLSERVER_CLIENT_MALFORMED_INTROSPECTION"`.
 
@@ -709,6 +704,7 @@ You can change the above mentioned options default values like this:
 ```js
 AllseverClient = AllserverClient.defaults({
   transport,
+  timeout,
   neverThrow,
   dynamicMethods,
   autoIntrospect,
@@ -912,7 +908,8 @@ const client = AllserverClient({
     ctx.http.headers.authorization = "Basic my-token";
   },
   async after(ctx) {
-    if (ctx.error) console.error(ctx.error); else console.log(ctx.result);
+    if (ctx.error) console.error(ctx.error);
+    else console.log(ctx.result);
   },
 });
 ```
