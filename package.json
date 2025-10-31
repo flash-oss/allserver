@@ -25,7 +25,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "http://github.com/flash-oss/allserver"
+    "url": "https://github.com/flash-oss/allserver"
   },
   "bugs": {
     "url": "https://github.com/flash-oss/allserver/issues"
@@ -34,6 +34,7 @@
   "author": "Vasyl Boroviak",
   "license": "MIT",
   "peerDependencies": {
+    "@aws-sdk/client-lambda": "3",
     "@grpc/grpc-js": "1",
     "@grpc/proto-loader": "0",
     "bullmq": "3 - 5",
@@ -41,6 +42,9 @@
     "micro": "10"
   },
   "peerDependenciesMeta": {
+    "@aws-sdk/client-lambda": {
+      "optional": true
+    },
     "@grpc/grpc-js": {
       "optional": true
     },
@@ -58,12 +62,13 @@
     }
   },
   "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.921.0",
     "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.8.0",
     "bullmq": "^5.56.9",
     "cls-hooked": "^4.2.2",
     "express": "^4.21.2",
-    "lambda-local": "^1.7.3",
+    "lambda-local": "^2.2.0",
     "micro": "^10.0.1",
     "nyc": "^17.1.0",
     "oxlint": "^1.25.0",

@@ -616,13 +616,7 @@ assert(success === true);
 
 ### Bare AWS Lambda invocation
 
-First you need to install any of the AWS SDK versions.
-
-```shell
-npm i allserver aws-sdk
-```
-
-or
+First you need to install the AWS SDK v3.
 
 ```shell
 npm i allserver @aws-sdk/client-lambda
