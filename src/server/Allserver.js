@@ -180,14 +180,22 @@ module.exports = require("stampit")({
     },
 
     statics: {
-        defaults({ procedures, transport, logger, introspection, before, after } = {}) {
-            if (before != null) before = (Array.isArray(before) ? before : [before]).filter(isFunction);
-            if (after != null) after = (Array.isArray(after) ? after : [after]).filter(isFunction);
+        /**
+         * @param [propsArg.procedures] {Object}
+         * @param [propsArg.transport] {Object}
+         * @param [propsArg.logger] {Object}
+         * @param [propsArg.introspection] {boolean}
+         * @param [propsArg.before] {Object}
+         * @param [propsArg.after] {Object}
+         * @return Copy of self
+         */
+        defaults(propsArg = {}) {
+            propsArg = Object.fromEntries(Object.entries(propsArg).filter(([key, value]) => value !== undefined));
+            let { before, after, ...props } = propsArg;
+            if (before) before = (Array.isArray(before) ? before : [before]).filter(isFunction);
+            if (after) after = (Array.isArray(after) ? after : [after]).filter(isFunction);
 
-            return this.compose({
-                props: { procedures, transport, logger, introspection },
-                deepProps: { before, after },
-            });
+            return this.compose({ props, deepProps: { before, after } });
         },
     },
 });

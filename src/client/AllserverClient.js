@@ -354,33 +354,26 @@ module.exports = require("stampit")({
     },
 
     statics: {
-        defaults({
-            transport,
-            timeout,
-            neverThrow,
-            dynamicMethods,
-            autoIntrospect,
-            callIntrospectedProceduresOnly,
-            nameMapper,
-            before,
-            after,
-        } = {}) {
-            if (before != null) before = (Array.isArray(before) ? before : [before]).filter(isFunction);
-            if (after != null) after = (Array.isArray(after) ? after : [after]).filter(isFunction);
+        /**
+         * @param [props.transport] {Object}
+         * @param [props.timeout] {number}
+         * @param [props.neverThrow] {boolean}
+         * @param [props.dynamicMethods] {Object}
+         * @param [props.autoIntrospect] {boolean}
+         * @param [props.callIntrospectedProceduresOnly] {boolean}
+         * @param [props.nameMapper] {Function}
+         * @param [props.before] {Function|Function[]}
+         * @param [props.after] {Function|Function[]}
+         * @return Copy of self
+         */
+        defaults(props = {}) {
+            props = Object.fromEntries(Object.entries(props).filter(([key, value]) => value !== undefined));
+            if (props.before)
+                props.before = (Array.isArray(props.before) ? props.before : [props.before]).filter(isFunction);
+            if (props.after)
+                props.after = (Array.isArray(props.after) ? props.after : [props.after]).filter(isFunction);
 
-            return this.deepProps({
-                [p]: {
-                    transport,
-                    timeout,
-                    neverThrow,
-                    dynamicMethods,
-                    callIntrospectedProceduresOnly,
-                    autoIntrospect,
-                    nameMapper,
-                    before,
-                    after,
-                },
-            });
+            return this.deepProps({ [p]: props });
         },
 
         addTransport({ schema, Transport }) {
