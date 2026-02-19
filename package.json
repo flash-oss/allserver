@@ -75,6 +75,6 @@
     "prettier": "^2.1.1"
   },
   "dependencies": {
-    "stampit": "^5.0.1"
+    "stampit": "^4.3.2"
   }
 }
