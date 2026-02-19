@@ -30,8 +30,19 @@ module.exports = require("./ClientTransport").compose({
                 response = await this.fetch(this.uri + procedureName, http);
                 http.response = response;
             } catch (err) {
-                if (err.code === "ECONNREFUSED" || (err.cause && err.cause.code === "ECONNREFUSED"))
+                const code = err.cause?.code || err.code;
+                if (
+                    code === "ECONNREFUSED" ||
+                    code === "ENOTFOUND" ||
+                    code === "ECONNRESET" ||
+                    code === "ENETUNREACH" ||
+                    code === "EHOSTUNREACH" ||
+                    code === "ENETDOWN" ||
+                    code === "ETIMEDOUT" ||
+                    code === "EADDRNOTAVAIL"
+                ) {
                     err.noNetToServer = true;
+                }
                 throw err;
             }
 
