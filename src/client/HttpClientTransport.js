@@ -42,6 +42,7 @@ module.exports = require("./ClientTransport").compose({
                     code === "EADDRNOTAVAIL"
                 ) {
                     err.noNetToServer = true;
+                    err.code = code;
                 }
                 throw err;
             }
