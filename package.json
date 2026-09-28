@@ -37,7 +37,8 @@
     "@aws-sdk/client-lambda": "3",
     "@grpc/grpc-js": "1",
     "@grpc/proto-loader": "0",
-    "bullmq": "3 - 5",
+    "bullmq": "3 - 6",
+    "ioredis": "^6.0.0",
     "express": "4 - 6",
     "micro": "10"
   },
@@ -65,7 +66,7 @@
     "@aws-sdk/client-lambda": "^3.921.0",
     "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.8.0",
-    "bullmq": "^5.56.9",
+    "bullmq": "^6.3.9",
     "cls-hooked": "^4.2.2",
     "express": "^4.21.2",
     "lambda-local": "^2.2.0",
