@@ -76,13 +76,10 @@ module.exports = require("stampit")({
                 result = await ctx.procedure(ctx.arg, ctx);
             } catch (err) {
                 const code = err.code || "ALLSERVER_PROCEDURE_ERROR";
-                this.logger.error(err, code);
+                this.logger.error(err, `Unhandled exception in '${ctx.procedureName}' procedure.`);
                 ctx.error = err;
-                ctx.result = {
-                    success: false,
-                    code,
-                    message: `'${err.message}' error in '${ctx.procedureName}' procedure`,
-                };
+                const message = `'${err.message}' error in '${ctx.procedureName}' procedure`;
+                ctx.result = { success: false, code, message };
                 await this.transport.prepareProcedureErrorReply(ctx);
                 return;
             }
@@ -127,13 +124,10 @@ module.exports = require("stampit")({
                     }
                 } catch (err) {
                     const code = err.code || "ALLSERVER_MIDDLEWARE_ERROR";
-                    this.logger.error(err, code);
+                    this.logger.error(err, `Unhandled exception in '${middlewareType}' middleware.`);
                     ctx.error = err;
-                    ctx.result = {
-                        success: false,
-                        code,
-                        message: `'${err.message}' error in '${middlewareType}' middleware`,
-                    };
+                    const message = `'${err.message}' error in '${middlewareType}' middleware`;
+                    ctx.result = { success: false, code, message };
                     // Do not call any more middlewares
                     if (next) return await next();
                 }

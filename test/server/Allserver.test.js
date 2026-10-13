@@ -143,7 +143,7 @@ describe("Allserver", () => {
             const server = Allserver({
                 logger: {
                     error(err, code) {
-                        assert.equal(code, "ALLSERVER_PROCEDURE_ERROR");
+                        assert.equal(code, "Unhandled exception in 'foo' procedure.");
                         assert.equal(err.message, "'undefined' is not a function");
                         logged = true;
                     },
@@ -323,7 +323,7 @@ describe("Allserver", () => {
                 const server = Allserver({
                     logger: {
                         error(err, code) {
-                            assert.equal(code, "ALLSERVER_MIDDLEWARE_ERROR");
+                            assert.equal(code, "Unhandled exception in 'before' middleware.");
                             assert.equal(err.message, "Handle me please");
                             logged = true;
                         },
@@ -509,7 +509,7 @@ describe("Allserver", () => {
                 const server = Allserver({
                     logger: {
                         error(err, code) {
-                            assert.equal(code, "ALLSERVER_MIDDLEWARE_ERROR");
+                            assert.equal(code, "Unhandled exception in 'after' middleware.");
                             assert.equal(err.message, "Handle me please");
                             logged = true;
                         },
