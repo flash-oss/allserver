@@ -443,7 +443,10 @@ describe("integration", function () {
             queue.on("error", () => {}); // This line removes noisy console.error() output which is emitted while Redis is starting
             const queueEvents = new QueueEvents("OtherName", { connection: { host: "localhost", port } });
             queueEvents.on("error", () => {}); // This line removes noisy console.error() output which is emitted while Redis is starting
-            const jobsOptions = { removeOnComplete: true, removeOnFail: true };
+            // If the job completes before QueueEvents reads the stream, the event is lost.
+            // Then waitUntilFinished() reads the result from the job, so the job must stay in Redis.
+            await queueEvents.waitUntilReady();
+            const jobsOptions = { removeOnComplete: 100, removeOnFail: 100 };
             const job = await queue.add("sayHello", { name: "world" }, jobsOptions);
             const response = await job.waitUntilFinished(queueEvents, 1000);
             const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
