@@ -709,10 +709,11 @@ describe("AllserverClient", () => {
             assert.equal(introspectionCalls, 2);
         });
 
-        it("should not auto introspect if asked so", (done) => {
+        it("should not auto introspect if asked so", async () => {
+            let introspectionCalls = 0;
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
-                    done(new Error("Must not attempt introspection"));
+                    introspectionCalls += 1;
                 },
                 async call() {
                     return { success: true, code: "CALLED_A", message: "A is good", b: 42 };
@@ -724,24 +725,22 @@ describe("AllserverClient", () => {
                 transport: MockedTransport({ uri: "void://very-unique-address-3" }),
             });
             assert.equal(Reflect.has(client, "foo"), false); // dont have it
-            client
-                .foo({ a: 1 })
-                .then((result) => {
-                    assert.equal(Reflect.has(client, "foo"), false); // still don't have it
-                    assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
-                    done();
-                })
-                .catch(done);
+            const result = await client.foo({ a: 1 });
+
+            assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+            assert.deepEqual(result, { success: true, code: "CALLED_A", message: "A is good", b: 42 });
+            assert.equal(introspectionCalls, 0);
         });
 
-        it("should return original error if introspection fails", (done) => {
+        it("should return original error if introspection fails", async () => {
             const error = new Error("My error");
+            let procedureCalls = 0;
             const MockedTransport = VoidClientTransport.methods({
                 async introspect() {
                     return { success: false, code: "SOME_ERROR", message: "My message", error };
                 },
                 async call() {
-                    done(new Error("Must not attempt calling procedures"));
+                    procedureCalls += 1;
                 },
             });
 
@@ -749,19 +748,16 @@ describe("AllserverClient", () => {
                 transport: MockedTransport({ uri: "void://very-unique-address-3" }),
             });
             assert.equal(Reflect.has(client, "foo"), false); // dont have it
-            client
-                .foo({ a: 1 })
-                .then((result) => {
-                    assert.equal(Reflect.has(client, "foo"), false); // still don't have it
-                    assert.deepEqual(result, {
-                        success: false,
-                        code: "SOME_ERROR",
-                        message: "My message",
-                        error,
-                    });
-                    done();
-                })
-                .catch(done);
+            const result = await client.foo({ a: 1 });
+
+            assert.equal(Reflect.has(client, "foo"), false); // still don't have it
+            assert.deepEqual(result, {
+                success: false,
+                code: "SOME_ERROR",
+                message: "My message",
+                error,
+            });
+            assert.equal(procedureCalls, 0);
         });
     });
 
