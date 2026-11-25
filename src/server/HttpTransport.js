@@ -61,18 +61,10 @@ module.exports = require("./Transport").compose({
          * After this time, or with 0, all connections are closed, also the ones with a request in flight.
          */
         stopServer({ timeoutMs = 0 } = {}) {
-            return new Promise((r) => {
-                if (this.server.closeIdleConnections) this.server.closeIdleConnections();
-                // Stops accepting new connections. Calls r() when all connections have ended.
-                this.server.close(r);
-                if (!this.server.closeAllConnections) return;
-                if (timeoutMs > 0) {
-                    const timer = setTimeout(() => this.server.closeAllConnections(), timeoutMs);
-                    this.server.once("close", () => clearTimeout(timer));
-                } else {
-                    this.server.closeAllConnections();
-                }
-            });
+            this.server.closeIdleConnections?.();
+            const timer = setTimeout(() => this.server.closeAllConnections?.(), timeoutMs);
+            // Stops accepting new connections. Resolves when all connections have ended.
+            return new Promise((r) => this.server.close(r)).finally(() => clearTimeout(timer));
         },
 
         getProcedureName(ctx) {

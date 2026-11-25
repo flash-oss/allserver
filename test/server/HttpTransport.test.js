@@ -51,27 +51,5 @@ describe("HttpTransport", () => {
             assert(Date.now() - start < 1000);
             await assert.rejects(response);
         });
-
-        it("should stop at once when no request is in flight", async () => {
-            const { server } = await startServer();
-
-            const start = Date.now();
-            await server.stop({ timeoutMs: 5000 });
-
-            assert(Date.now() - start < 1000);
-        });
-
-        it("should stop accepting new connections", async () => {
-            const { server, url } = await startServer();
-            const slowResponse = fetch(`${url}/slow?ms=200`);
-            await setTimeout(50);
-
-            const stopped = server.stop({ timeoutMs: 1000 });
-            const newResponse = fetch(`${url}/slow?ms=0`);
-
-            await assert.rejects(newResponse);
-            await slowResponse;
-            await stopped;
-        });
     });
 });

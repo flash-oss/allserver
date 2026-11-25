@@ -324,7 +324,7 @@ process.on("SIGTERM", async () => {
 });
 ```
 
-The server stops accepting new connections at once and `stop()` resolves when all connections have ended. Idle keep-alive connections end after the server's `keepAliveTimeout` (5s by default). After `timeoutMs`, the server closes all connections that are still open. Keep `timeoutMs` below the time your platform gives the process to stop (for example, the ECS `stopTimeout`, 30s by default).
+`stop()` resolves when all connections have ended, which can be up to `keepAliveTimeout` (5s by default) after the last request. After `timeoutMs` it closes the connections that are still open, so keep it below the time your platform gives the process to stop.
 
 #### Replying non-standard HTTP response from a procedure
 
