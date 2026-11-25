@@ -168,8 +168,11 @@ module.exports = require("stampit")({
         start() {
             return this.transport.startServer({ allserver: this });
         },
-        stop() {
-            return this.transport.stopServer();
+        /**
+         * @param [options] {Object} Passed to the transport. HttpTransport accepts `{ timeoutMs }`.
+         */
+        stop(options) {
+            return this.transport.stopServer(options);
         },
     },
 

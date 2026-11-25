@@ -215,6 +215,20 @@ describe("Allserver", () => {
             await promise;
             assert(stopped);
         });
+
+        it("should pass the options to transport stopServer()", async () => {
+            let stopOptions;
+            const MockedTransport = VoidTransport.methods({
+                async stopServer(options) {
+                    stopOptions = options;
+                },
+            });
+
+            const server = Allserver({ transport: MockedTransport() });
+            await server.stop({ timeoutMs: 100 });
+
+            assert.deepEqual(stopOptions, { timeoutMs: 100 });
+        });
     });
 
     describe("introspection", () => {

@@ -307,6 +307,22 @@ Allserver({
 }).start();
 ```
 
+#### Graceful stop
+
+By default, `stop()` closes the connections of the requests that are still in flight. To let them complete first, give a `timeoutMs`:
+
+```js
+const server = Allserver({ procedures, transport: HttpTransport({ port: process.env.PORT }) });
+await server.start();
+
+process.on("SIGTERM", async () => {
+  await server.stop({ timeoutMs: 20_000 });
+  process.exit(0);
+});
+```
+
+The server stops accepting new connections at once and replies to new requests on open keep-alive connections with `Connection: close`. When no request is in flight, or after `timeoutMs`, it closes all connections. Keep `timeoutMs` below the time your platform gives the process to stop (for example, the ECS `stopTimeout`, 30s by default).
+
 #### Replying non-standard HTTP response from a procedure
 
 You'd need to deal with node.js `res` yourself.

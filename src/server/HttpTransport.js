@@ -7,6 +7,9 @@ module.exports = require("./Transport").compose({
     props: {
         micro: require("micro"),
         port: process.env.PORT,
+        _requestsInFlight: 0,
+        _stopping: false,
+        _onNoRequestsInFlight: null,
     },
 
     init({ port }) {
@@ -42,6 +45,14 @@ module.exports = require("./Transport").compose({
         startServer(defaultCtx) {
             this.server = new http.Server(
                 this.micro.serve(async (req, res) => {
+                    this._requestsInFlight += 1;
+                    res.once("close", () => {
+                        this._requestsInFlight -= 1;
+                        if (this._requestsInFlight === 0 && this._onNoRequestsInFlight) this._onNoRequestsInFlight();
+                    });
+                    // Tell keep-alive clients to open a new connection, which goes to another server.
+                    if (this._stopping) res.setHeader("Connection", "close");
+
                     const ctx = { ...defaultCtx, http: { req, res, url: parseUrl(req.url) } };
 
                     ctx.http.query = {};
@@ -56,12 +67,28 @@ module.exports = require("./Transport").compose({
             );
             return new Promise((r) => this.server.listen(this.port, r));
         },
-        stopServer() {
-            return new Promise((r) => {
-                if (this.server.closeIdleConnections) this.server.closeIdleConnections();
-                this.server.close(r);
-                if (this.server.closeAllConnections) this.server.closeAllConnections();
-            });
+        /**
+         * @param [options.timeoutMs=0] {number} How long to wait for the requests in flight to complete.
+         * After this time, or with 0, the connections of the requests that are still in flight are closed.
+         */
+        async stopServer({ timeoutMs = 0 } = {}) {
+            this._stopping = true;
+            const closed = new Promise((r) => this.server.close(r));
+            if (this.server.closeIdleConnections) this.server.closeIdleConnections();
+
+            if (timeoutMs > 0 && this._requestsInFlight > 0) {
+                await new Promise((resolve) => {
+                    const timer = setTimeout(resolve, timeoutMs);
+                    this._onNoRequestsInFlight = () => {
+                        clearTimeout(timer);
+                        resolve();
+                    };
+                });
+                this._onNoRequestsInFlight = null;
+            }
+
+            if (this.server.closeAllConnections) this.server.closeAllConnections();
+            return closed;
         },
 
         getProcedureName(ctx) {
