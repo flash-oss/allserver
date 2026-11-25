@@ -311,7 +311,7 @@ describe("integration", function () {
         it("should behave with @grpc/grpc-js", async () => {
             const grpcServer = Allserver({
                 procedures,
-                transport: GrpcTransport({ protoFile, port: 50051 }),
+                transport: GrpcTransport({ protoFile, port: 50052 }),
             });
             await grpcServer.start();
 
@@ -320,7 +320,7 @@ describe("integration", function () {
                 __dirname + "/allserver_integration_test.proto"
             );
             const proto = grpc.loadPackageDefinition(packageDefinition);
-            const client = new proto.MyService("localhost:50051", grpc.credentials.createInsecure());
+            const client = new proto.MyService("localhost:50052", grpc.credentials.createInsecure());
             const { promisify } = require("node:util");
             for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
 
