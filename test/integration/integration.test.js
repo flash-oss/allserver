@@ -311,7 +311,7 @@ describe("integration", function () {
         it("should behave with @grpc/grpc-js", async () => {
             const grpcServer = Allserver({
                 procedures,
-                transport: GrpcTransport({ protoFile, port: 50051 }),
+                transport: GrpcTransport({ protoFile, port: 50052 }),
             });
             await grpcServer.start();
 
@@ -320,7 +320,7 @@ describe("integration", function () {
                 __dirname + "/allserver_integration_test.proto"
             );
             const proto = grpc.loadPackageDefinition(packageDefinition);
-            const client = new proto.MyService("localhost:50051", grpc.credentials.createInsecure());
+            const client = new proto.MyService("localhost:50052", grpc.credentials.createInsecure());
             const { promisify } = require("node:util");
             for (const k in client) if (typeof client[k] === "function") client[k] = promisify(client[k].bind(client));
 
@@ -443,7 +443,10 @@ describe("integration", function () {
             queue.on("error", () => {}); // This line removes noisy console.error() output which is emitted while Redis is starting
             const queueEvents = new QueueEvents("OtherName", { connection: { host: "localhost", port } });
             queueEvents.on("error", () => {}); // This line removes noisy console.error() output which is emitted while Redis is starting
-            const jobsOptions = { removeOnComplete: true, removeOnFail: true };
+            // If the job completes before QueueEvents reads the stream, the event is lost.
+            // Then waitUntilFinished() reads the result from the job, so the job must stay in Redis.
+            await queueEvents.waitUntilReady();
+            const jobsOptions = { removeOnComplete: 100, removeOnFail: 100 };
             const job = await queue.add("sayHello", { name: "world" }, jobsOptions);
             const response = await job.waitUntilFinished(queueEvents, 1000);
             const expectedHello = { success: true, code: "SUCCESS", message: "Success", sayHello: "Hello world" };
