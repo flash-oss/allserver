@@ -46,6 +46,8 @@ module.exports = require("./ClientTransport").compose({
         async call({ procedureName, bullmq }) {
             try {
                 await this._queue.waitUntilReady();
+                // If the job completes before QueueEvents is connected, the "completed" event is lost and the call times out.
+                await bullmq.queueEvents.waitUntilReady();
                 const job = await bullmq.queue.add(procedureName, bullmq.data, bullmq.jobsOptions);
                 return await job.waitUntilFinished(bullmq.queueEvents, this.timeout); // this.timeout is a property of the parent ClientTransport
             } catch (err) {
