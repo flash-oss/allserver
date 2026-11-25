@@ -312,7 +312,10 @@ Allserver({
 By default, `stop()` closes the connections of the requests that are still in flight. To let them complete first, give a `timeoutMs`:
 
 ```js
-const server = Allserver({ procedures, transport: HttpTransport({ port: process.env.PORT }) });
+const server = Allserver({
+  procedures,
+  transport: HttpTransport({ port: process.env.PORT }),
+});
 await server.start();
 
 process.on("SIGTERM", async () => {
@@ -321,7 +324,7 @@ process.on("SIGTERM", async () => {
 });
 ```
 
-The server stops accepting new connections at once and replies to new requests on open keep-alive connections with `Connection: close`. When no request is in flight, or after `timeoutMs`, it closes all connections. Keep `timeoutMs` below the time your platform gives the process to stop (for example, the ECS `stopTimeout`, 30s by default).
+The server stops accepting new connections at once and `stop()` resolves when all connections have ended. Idle keep-alive connections end after the server's `keepAliveTimeout` (5s by default). After `timeoutMs`, the server closes all connections that are still open. Keep `timeoutMs` below the time your platform gives the process to stop (for example, the ECS `stopTimeout`, 30s by default).
 
 #### Replying non-standard HTTP response from a procedure
 
